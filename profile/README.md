@@ -8,20 +8,20 @@ understanding - they are not robust and not suitable for production use.
 
 ## Matrix (Model – Corpus)
 
-| Training repo                      | Corpus trained         | Notes                                      |
-| ---------------------------------- | ---------------------- | ------------------------------------------ |
-| `train-100-unigram`                | `000_cat_dog.txt`      | neutral baseline, single-token model       |
-| `train-200-bigram`                 | `000_cat_dog.txt`      | conditional next-token with 2-token stats  |
-| `train-300-context-2`              | `000_cat_dog.txt`      | canonical context-2 neutral baseline       |
-| `train-301-context-2-llm-glossary` | `010_llm_glossary.txt` | same architecture as 300, different corpus |
-| `train-302-context-2-repo-tour`    | `020_repo_tour.txt`    | same architecture as 300, different corpus |
-| `train-400-context-3`              | `000_cat_dog.txt`      | canonical context-3 neutral baseline       |
-| `train-500-embeddings`             | `030_analytics.txt`    | canonical embeddings demo corpus           |
-| `train-600-attention`              | `030_analytics.txt`    | same corpus as 500 to isolate effect       |
-| `train-100-unigram-animals`        | `001_animals.txt`      | baseline, single-token model               |
-| `train-200-bigram-animals`         | `001_animals.txt`      | conditional next-token with 2-token stats  |
-| `train-300-context-2-animals`      | `001_animals.txt`      | canonical context-2 baseline               |
-| `train-400-context-3-animals`      | `001_animals.txt`      | canonical context-3 baseline               |
+| Training repo                                                           | Corpus trained         | Notes                                      |
+| ----------------------------------------------------------------------- | ---------------------- | ------------------------------------------ |
+| [`train-100-unigram`](https://github.com/toy-gpt/train-100-unigram)     | `000_cat_dog.txt`      | neutral baseline, single-token model       |
+| [`train-200-bigram`](https://github.com/toy-gpt/train-200-bigram)       | `000_cat_dog.txt`      | conditional next-token with 2-token stats  |
+| [`train-300-context-2`](https://github.com/toy-gpt/train-300-context-2) | `000_cat_dog.txt`      | canonical context-2 neutral baseline       |
+| `train-301-context-2-llm-glossary`                                      | `010_llm_glossary.txt` | same architecture as 300, different corpus |
+| `train-302-context-2-repo-tour`                                         | `020_repo_tour.txt`    | same architecture as 300, different corpus |
+| [`train-400-context-3`](https://github.com/toy-gpt/train-400-context-3) | `000_cat_dog.txt`      | canonical context-3 neutral baseline       |
+| `train-500-embeddings`                                                  | `030_analytics.txt`    | canonical embeddings demo corpus           |
+| `train-600-attention`                                                   | `030_analytics.txt`    | same corpus as 500 to isolate effect       |
+| `train-100-unigram-animals`                                             | `001_animals.txt`      | baseline, single-token model               |
+| `train-200-bigram-animals`                                              | `001_animals.txt`      | conditional next-token with 2-token stats  |
+| `train-300-context-2-animals`                                           | `001_animals.txt`      | canonical context-2 baseline               |
+| `train-400-context-3-animals`                                           | `001_animals.txt`      | canonical context-3 baseline               |
 
 ## Grid View
 
