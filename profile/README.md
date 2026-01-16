@@ -69,8 +69,8 @@ See [CORPUS_NUMBERING.md](./CORPUS_NUMBERING.md) for full details.
   A reference corpus used to compare model behavior across architectures.
 
 - **neutral corpus**
-  A corpus where additional context adds little predictive power under n-gram modles; the learned
-  geometry is relatively flat with few gradients.
+  A corpus where additional context adds little predictive power under n-gram models;
+  the learned geometry is relatively flat with few gradients.
 
 - **unigram**
   A model that conditions on a single token (`uni` = one).
