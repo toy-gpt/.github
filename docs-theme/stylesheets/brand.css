@@ -1,0 +1,80 @@
+/* ============================================================
+   Toy-GPT Brand Theme (Forest Green)
+   ============================================================
+
+   WHY:
+   - Provide a calm, academic, nature-inspired visual identity
+   - Override only key Material variables (low maintenance)
+   - Keep contrast high for readability
+
+   NOTE:
+   - This file is shared across Toy-GPT repos.
+   - Avoid page-specific or layout-specific rules here.
+*/
+
+/* === BRAND COLOR TOKENS === */
+:root {
+  /* Forest green core */
+  --toy-gpt-green-900: #0f3d2e;
+  --toy-gpt-green-700: #1f5f4a;
+  --toy-gpt-green-600: #2e7d62;
+  --toy-gpt-green-500: #3a8f73;
+
+  /* Accent / neutral support */
+  --toy-gpt-sand-100: #f3f6f4;
+  --toy-gpt-slate-800: #1e2933;
+}
+
+/* === MATERIAL THEME OVERRIDES (LIGHT MODE) === */
+[data-md-color-scheme="default"] {
+  --md-primary-fg-color: var(--toy-gpt-green-700);
+  --md-primary-fg-color--dark: var(--toy-gpt-green-900);
+  --md-primary-fg-color--light: var(--toy-gpt-green-500);
+
+  --md-accent-fg-color: var(--toy-gpt-green-600);
+
+  /* Background tuning */
+  --md-default-bg-color: var(--toy-gpt-sand-100);
+}
+
+/* === MATERIAL THEME OVERRIDES (DARK MODE) === */
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color: var(--toy-gpt-green-500);
+  --md-accent-fg-color: var(--toy-gpt-green-600);
+
+  /* Keep contrast crisp in dark mode */
+  --md-default-bg-color: #0b1411;
+  --md-default-fg-color: #e6f2ed;
+}
+
+/* === LINKS === */
+.md-typeset a {
+  color: var(--md-accent-fg-color);
+}
+.md-typeset a:hover {
+  color: var(--toy-gpt-green-900);
+}
+
+/* === CODE BLOCKS === */
+.md-typeset pre code {
+  border-radius: 6px;
+}
+
+/* === NAVIGATION POLISH === */
+.md-nav__item--active > .md-nav__link {
+  font-weight: 600;
+}
+
+/* === ADMONITIONS (NOTES, TIPS, WARNINGS) === */
+.md-typeset .admonition,
+.md-typeset details {
+  border-left-color: var(--toy-gpt-green-600);
+}
+
+/* === FOOTER SUBTLE BRANDING === */
+.md-footer {
+  background-color: var(--toy-gpt-green-900);
+}
+.md-footer-meta {
+  background-color: var(--toy-gpt-green-900);
+}

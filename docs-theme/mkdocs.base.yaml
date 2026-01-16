@@ -1,0 +1,79 @@
+# ============================================================
+# mkdocs.base.yaml (Organization  MkDocs default configuration file)
+# ============================================================
+
+# REQ.ORGANIZATION:
+#   Shared MkDocs configuration used across organization repositories.
+#   Repository-specific settings (site_name, repo_url, nav, etc.)
+#   belong in each repo's mkdocs.yaml.
+
+# WHY-FILE:
+#   Provide a single place to manage documentation defaults
+#   (theme, plugins, markdown behavior).
+
+docs_dir: docs
+site_dir: site
+
+extra_css:
+  - stylesheets/brand.css
+
+# === THEME (ORG-WIDE DEFAULTS) ===
+# WHY: Keep styling consistent across all repos.
+# CUSTOM: You can switch themes here once for the whole org.
+theme:
+  name: material
+  logo: assets/logo.png
+  favicon: assets/logo.png
+
+  # OBS: Avoid hard-coding colors here.
+  # Prefer a shared CSS file for centralized branding.
+  features:
+    - navigation.tabs # Top-level nav as tabs
+    - navigation.tabs.sticky # Keep tabs visible when scrolling
+    - navigation.expand
+    - navigation.top # Back-to-top button
+    - search.suggest # Search suggestions while typing
+    - search.highlight # Highlight search terms
+    - content.code.copy # Copy button on code blocks
+    - toc.follow # Highlight current section in TO
+
+  icon:
+    repo: fontawesome/brands/github # WHY: Familiar GitHub icon in header
+
+# === PLUGINS (ORG-WIDE DEFAULTS) ===
+
+plugins:
+  - search # WHY: Built-in search functionality
+  - mike # WHY: Multi-version documentation management
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: google # Professional docstring format
+
+            # === PAGE STRUCTURE ===
+            show_root_heading: true # Include module names
+            show_root_full_path: false # Hide full module paths
+            show_root_toc_entry: true # Include module in TOC
+
+            # === SIGNATURES ===
+            separate_signature: true # WHY: Readable signatures
+            show_signature_annotations: true # WHY: Types clarify usage
+
+            # === CONTENT FILTERING ===
+            show_if_no_docstring: false # WHY: Hide undocumented internals
+
+            # === SOURCE LINKS ===
+            show_source: false # WHY: Cleaner
+
+# === MARKDOWN BEHAVIOR (ORG-WIDE DEFAULTS) ===
+# WHY: Common quality-of-life improvements for docs.
+markdown_extensions:
+  - admonition
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.inlinehilite
+  - pymdownx.highlight:
+      anchor_linenums: true
