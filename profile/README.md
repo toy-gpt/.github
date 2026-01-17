@@ -8,8 +8,8 @@ the repositories are not suitable for production use.
 Several corpora are intentionally neutral, serving as negative controls to show
 when additional context provides little or no benefit.
 
-- [App]()
-- [Source](https://github.com/toy-gpt/toy-gpt-chat)
+- [App](https://toy-gpt.github.io/toy-gpt-chat/) -interactive visualization of next-word (token) prediction in GPT-style language models.
+- [App Repo](https://github.com/toy-gpt/toy-gpt-chat)
 
 ## Matrix (Model – Corpus)
 
