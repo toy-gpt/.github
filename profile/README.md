@@ -8,6 +8,9 @@ the repositories are not suitable for production use.
 Several corpora are intentionally neutral, serving as negative controls to show
 when additional context provides little or no benefit.
 
+- [App]()
+- [Source](https://github.com/toy-gpt/toy-gpt-chat)
+
 ## Matrix (Model – Corpus)
 
 | Training repo                                                                           | Corpus trained         | Notes (corpus type)                                    |
