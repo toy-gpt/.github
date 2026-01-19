@@ -23,7 +23,7 @@ when additional context provides little or no benefit.
 | [`train-200-bigram-animals`](https://github.com/toy-gpt/train-200-bigram-animals)       | `001_animals.txt`      | conditional next-token with 2-token stats (structured) |
 | [`train-300-context-2-animals`](https://github.com/toy-gpt/train-300-context-2-animals) | `001_animals.txt`      | canonical context-2 (structured)                       |
 | [`train-400-context-3-animals`](https://github.com/toy-gpt/train-400-context-3-animals) | `001_animals.txt`      | canonical context-3 (structured)                       |
-| `train-301-context-2-llm-glossary`                                                      | `010_llm_glossary.txt` | same architecture as 300, different corpus             |
+| [`train-301-context-2-llm-glossary`](https://github.com/toy-gpt/train-301-context-2-llm-glossary) | `010_llm_glossary.txt` | same architecture as 300, different corpus             |
 | `train-302-context-2-repo-tour`                                                         | `020_repo_tour.txt`    | same architecture as 300, different corpus             |
 | `train-500-embeddings`                                                                  | `030_analytics.txt`    | canonical embeddings demo corpus                       |
 | `train-600-attention`                                                                   | `030_analytics.txt`    | same corpus as 500 to isolate effect                   |
