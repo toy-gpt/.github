@@ -13,20 +13,20 @@ when additional context provides little or no benefit.
 
 ## Matrix (Model – Corpus)
 
-| Training repo                                                                           | Corpus trained         | Notes (model + corpus)                                    |
+| Training repo                                                                           | Corpus trained         | Notes (model + corpus)                                 |
 | --------------------------------------------------------------------------------------- | ---------------------- | ------------------------------------------------------ |
-| [`train-100-unigram`](https://github.com/toy-gpt/train-100-unigram)                     | _000_cat_dog.txt_      | single-token **unigram** model (neutral)                           |
-| [`train-200-bigram`](https://github.com/toy-gpt/train-200-bigram)                       | _000_cat_dog.txt_      | conditional next-token with 2-token stats (neutral)    |
+| [`train-100-unigram`](https://github.com/toy-gpt/train-100-unigram)                     | _000_cat_dog.txt_      | single-token **unigram** model (neutral)               |
+| [`train-200-bigram`](https://github.com/toy-gpt/train-200-bigram)                       | _000_cat_dog.txt_      | conditional next-token with 2-token stats **bigram** (neutral) |
 | [`train-300-context-2`](https://github.com/toy-gpt/train-300-context-2)                 | _000_cat_dog.txt_      | canonical **context-2** (neutral)                          |
 | [`train-400-context-3`](https://github.com/toy-gpt/train-400-context-3)                 | _000_cat_dog.txt_      | canonical **context-3** (neutral)                          |
-| [`train-100-unigram-animals`](https://github.com/toy-gpt/train-100-unigram-animals)     | **001_animals.txt**      | single-token **unigram** model (structured)                        |
-| [`train-200-bigram-animals`](https://github.com/toy-gpt/train-200-bigram-animals)       | **001_animals.txt**      | conditional next-token with 2-token stats (structured) |
+| [`train-100-unigram-animals`](https://github.com/toy-gpt/train-100-unigram-animals)     | **001_animals.txt**      | single-token **unigram** model (structured)              |
+| [`train-200-bigram-animals`](https://github.com/toy-gpt/train-200-bigram-animals)       | **001_animals.txt**      | conditional next-token with 2-token stats **bigram** (structured) |
 | [`train-300-context-2-animals`](https://github.com/toy-gpt/train-300-context-2-animals) | **001_animals.txt**      | canonical **context-2** (structured)                       |
-| [`train-400-context-3-animals`](https://github.com/toy-gpt/train-400-context-3-animals) | **001_animals.txt**      | canonical**context-3** (structured)                       |
-| [`train-301-context-2-llm-glossary`](https://github.com/toy-gpt/train-301-context-2-llm-glossary) | `010_llm_glossary.txt` | canonical **context-2** + llm corpus             |
+| [`train-400-context-3-animals`](https://github.com/toy-gpt/train-400-context-3-animals) | **001_animals.txt**      | canonical **context-3** (structured)                       |
+| [`train-301-context-2-llm-glossary`](https://github.com/toy-gpt/train-301-context-2-llm-glossary) | `010_llm_glossary.txt` | canonical **context-2** + llm corpus    |
 | `train-302-context-2-repo-tour`                                                         | `020_repo_tour.txt`    | canonical **context-2** + repo corpus             |
-| `train-500-embeddings`                                                                  | `030_analytics.txt`    | canonical embeddings demo corpus                       |
-| `train-600-attention`                                                                   | `030_analytics.txt`    | same corpus as 500 to isolate effect                   |
+| `train-500-embeddings`                                                                  | `030_analytics.txt`    | canonical embeddings demo corpus                  |
+| `train-600-attention`                                                                   | `030_analytics.txt`    | same corpus as 500 to isolate effect              |
 
 ## Grid View
 
