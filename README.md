@@ -8,6 +8,27 @@
 
 > GitHub profile repo for the toy-gpt organization on GitHub.
 
+## Organization Checks
+
+You need a GitHub Personal Access Token (PAT)
+with read access to the org.
+And it must be set as an environment variable before running the script.
+
+### Step 1. Create the token
+
+Go to https://github.com/settings/tokens?type=beta (fine-grained tokens, recommended)
+
+- Resource owner: toy-gpt (the org)
+- Repository access: All repositories
+- Permissions needed:
+  - Actions = Read-only
+  - Contents = Read-only
+  - Metadata = Read-only (auto-selected)
+
+### Step 2. Generate and Copy the token
+
+Copy to .env (not committed to GitHub).
+You only see it once.
 
 ## Command Reference
 
@@ -43,7 +64,8 @@ uvx pre-commit install
 git add -A
 uvx pre-commit run --all-files
 
-uv run python -m cintel.continuous_intelligence_case
+uv run --env-file .env python src/toy-gpt-github/checks.py
+uv run python -m toy-gpt-github.checks
 
 uv run ruff format .
 uv run ruff check . --fix
