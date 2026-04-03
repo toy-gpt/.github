@@ -23,7 +23,7 @@ Select a model (how many previous tokens are used to predict the next one):
 | Code | Model | Context window |
 |---|---|---|
 | 100 | Unigram | 0 tokens; predicts from overall frequency only |
-| 200 | Bigram | 1 token; predicts from the immediately preceding token |
+| 200 / 201 | Bigram | 1 token; predicts from the immediately preceding token |
 | 300 / 301 / 302 | Context-2 | 2 tokens; predicts from the previous two tokens |
 | 400 | Context-3 | 3 tokens; predicts from the previous three tokens |
 | 500 | Embeddings | learns vector representations of tokens |
@@ -53,10 +53,14 @@ Select a corpus (the text the model is trained on):
 | [train-200-bigram-animals](https://github.com/toy-gpt/train-200-bigram-animals) | Bigram | 001 animals (**structured**) |
 | [train-300-context-2-animals](https://github.com/toy-gpt/train-300-context-2-animals) | Context-2 | 001 animals (**structured**) |
 | [train-400-context-3-animals](https://github.com/toy-gpt/train-400-context-3-animals) | Context-3 | 001 animals (**structured**) |
+| [train-201-bigram-llm-glossary](https://github.com/toy-gpt/train-201-bigram-llm-glossary) | Bigram | 010 llm_glossary (**domain**) |
 | [train-301-context-2-llm-glossary](https://github.com/toy-gpt/train-301-context-2-llm-glossary) | Context-2 | 010 llm_glossary (**domain**) |
+| [train-401-context-3-llm-glossary](https://github.com/toy-gpt/train-401-context-3-llm-glossary) | Context-3 | 010 llm_glossary (**domain**) ⚠️ |
 | [train-302-context-2-repo-tour](https://github.com/toy-gpt/train-302-context-2-repo-tour) | Context-2 | 020 repo_tour (**domain**) |
 | [train-500-embeddings](https://github.com/toy-gpt/train-500-embeddings) | Embeddings | 030 analytics (**domain**) |
 | [train-600-attention](https://github.com/toy-gpt/train-600-attention) | Attention | 030 analytics (**domain**) |
+
+⚠️ Too large to commit (428 MB of mostly zeros).
 
 ## Grid View
 
