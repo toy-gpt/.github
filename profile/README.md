@@ -41,26 +41,28 @@ Select a corpus (the text the model is trained on):
 | 020 | repo_tour.txt | Domain | Repository file and folder descriptions |
 | 030 | analytics.txt | Domain | Technical micro-lessons |
 
-### Training Respository Model-Corpus Matrix
+### Training Repository Model-Corpus Matrix
 
-| Repository | Model | Corpus |
-|---|---|---|
-| [train-100-unigram](https://github.com/toy-gpt/train-100-unigram) | Unigram | 000 cat_dog (**neutral**) |
-| [train-200-bigram](https://github.com/toy-gpt/train-200-bigram) | Bigram | 000 cat_dog (**neutral**) |
-| [train-300-context-2](https://github.com/toy-gpt/train-300-context-2) | Context-2 | 000 cat_dog (**neutral**) |
-| [train-400-context-3](https://github.com/toy-gpt/train-400-context-3) | Context-3 | 000 cat_dog (**neutral**) |
-| [train-100-unigram-animals](https://github.com/toy-gpt/train-100-unigram-animals) | Unigram | 001 animals (**structured**) |
-| [train-200-bigram-animals](https://github.com/toy-gpt/train-200-bigram-animals) | Bigram | 001 animals (**structured**) |
-| [train-300-context-2-animals](https://github.com/toy-gpt/train-300-context-2-animals) | Context-2 | 001 animals (**structured**) |
-| [train-400-context-3-animals](https://github.com/toy-gpt/train-400-context-3-animals) | Context-3 | 001 animals (**structured**) |
-| [train-201-bigram-llm-glossary](https://github.com/toy-gpt/train-201-bigram-llm-glossary) | Bigram | 010 llm_glossary (**domain**) |
-| [train-301-context-2-llm-glossary](https://github.com/toy-gpt/train-301-context-2-llm-glossary) | Context-2 | 010 llm_glossary (**domain**) |
-| [train-401-context-3-llm-glossary](https://github.com/toy-gpt/train-401-context-3-llm-glossary) | Context-3 | 010 llm_glossary (**domain**) ⚠️ |
-| [train-302-context-2-repo-tour](https://github.com/toy-gpt/train-302-context-2-repo-tour) | Context-2 | 020 repo_tour (**domain**) |
-| [train-500-embeddings](https://github.com/toy-gpt/train-500-embeddings) | Embeddings | 030 analytics (**domain**) |
-| [train-600-attention](https://github.com/toy-gpt/train-600-attention) | Attention | 030 analytics (**domain**) |
+| Repository | Model | Corpus | Context |
+|---|---|---|---|
+| [train-100-unigram](https://github.com/toy-gpt/train-100-unigram) | Unigram | 000 cat_dog (**neutral**) | 0 |
+| [train-200-bigram](https://github.com/toy-gpt/train-200-bigram) | Bigram | 000 cat_dog (**neutral**) | 1 |
+| [train-300-context-2](https://github.com/toy-gpt/train-300-context-2) | Context-2 | 000 cat_dog (**neutral**) | 2 |
+| [train-400-context-3](https://github.com/toy-gpt/train-400-context-3) | Context-3 | 000 cat_dog (**neutral**) | 3 |
+| [train-100-unigram-animals](https://github.com/toy-gpt/train-100-unigram-animals) | Unigram | 001 animals (**structured**) | 0 |
+| [train-200-bigram-animals](https://github.com/toy-gpt/train-200-bigram-animals) | Bigram | 001 animals (**structured**) | 1 |
+| [train-300-context-2-animals](https://github.com/toy-gpt/train-300-context-2-animals) | Context-2 | 001 animals (**structured**) | 2 |
+| [train-400-context-3-animals](https://github.com/toy-gpt/train-400-context-3-animals) | Context-3 | 001 animals (**structured**) | 3 |
+| [train-201-bigram-llm-glossary](https://github.com/toy-gpt/train-201-bigram-llm-glossary) | Bigram | 010 llm_glossary (**domain**) | 1 |
+| [train-301-context-2-llm-glossary](https://github.com/toy-gpt/train-301-context-2-llm-glossary) | Context-2 | 010 llm_glossary (**domain**) | 2 |
+| [train-401-context-3-llm-glossary](https://github.com/toy-gpt/train-401-context-3-llm-glossary) | Context-3 | 010 llm_glossary (**domain**) ⚠️ | 3 |
+| [train-302-context-2-repo-tour](https://github.com/toy-gpt/train-302-context-2-repo-tour) | Context-2 | 020 repo_tour (**domain**) | 2 |
+| [train-500-embeddings](https://github.com/toy-gpt/train-500-embeddings) | Embeddings | 030 analytics (**domain**) | 2 |
+| [train-600-attention](https://github.com/toy-gpt/train-600-attention) | Attention | 030 analytics (**domain**) ℹ️ | 2 |
+| [train-600-attention-3](https://github.com/toy-gpt/train-600-attention-3) | Attention | 030 analytics (**domain**) ℹ️ | 3 |
 
-⚠️ Too large to commit (428 MB of mostly zeros).
+⚠️ Too large to commit (428 MB of mostly zeros).  
+ℹ️ Attention requires scale to produce meaningful position weighting.
 
 ## Grid View
 
