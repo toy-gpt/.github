@@ -1,5 +1,5 @@
 """
-checks.py - toy-gpt org health scanner
+checks.py — toy-gpt org health scanner
 
 WHY: Scan all repos in the toy-gpt org and report on workflow status,
      file presence, and migration state (mkdocs -> zensical).
@@ -15,7 +15,6 @@ REQUIRES:
 import os
 import sys
 from dataclasses import dataclass, field
-from typing import Any
 
 import httpx
 from rich.console import Console
@@ -29,7 +28,7 @@ ORG = "toy-gpt"
 BASE = "https://api.github.com"
 
 # Workflow filenames to check (as they appear in .github/workflows/)
-WORKFLOWS_TO_CHECK = ["ci-org.yml", "deploy-zensical.yml", "links.yml"]
+WORKFLOWS_TO_CHECK = ["ci-org.yml", "deploy-docs-shared.yml", "links.yml"]
 
 # Files whose presence indicates repo health / migration state
 FILES_TO_CHECK = {
@@ -42,6 +41,12 @@ FILES_TO_CHECK = {
 
 # Thin caller pattern — workflow files should contain this string if migrated
 CALLER_PATTERN = "uses: toy-gpt/.github/.github/workflows/"
+
+# Repos that ARE the org workflows — skip thin-caller check
+SKIP_THIN_CALLER = {".github"}
+
+# Repos that don't need SE_MANIFEST.toml
+SKIP_MANIFEST = {".github", "toy-gpt-chat"}
 
 # ============================================================
 # Data
@@ -81,7 +86,7 @@ def make_client(token: str) -> httpx.Client:
     )
 
 
-def get_repos(client: httpx.Client, org: str) -> list[dict[str, Any]]:
+def get_repos(client: httpx.Client, org: str) -> list[dict]:
     repos = []
     page = 1
     while True:
@@ -97,10 +102,8 @@ def get_repos(client: httpx.Client, org: str) -> list[dict[str, Any]]:
 
 def get_latest_run(client: httpx.Client, org: str, repo: str, workflow: str) -> str:
     """Returns 'pass', 'fail', 'missing', or 'unknown'."""
-    r = client.get(
-        f"/repos/{org}/{repo}/actions/workflows/{workflow}/runs",
-        params={"per_page": 1, "branch": "main"},
-    )
+    r = client.get(f"/repos/{org}/{repo}/actions/workflows/{workflow}/runs",
+                   params={"per_page": 1, "branch": "main"})
     if r.status_code == 404:
         return "missing"
     if r.status_code != 200:
@@ -127,10 +130,7 @@ def is_thin_caller(client: httpx.Client, org: str, repo: str, workflow: str) -> 
     if r.status_code != 200:
         return False
     import base64
-
-    content = base64.b64decode(r.json().get("content", "")).decode(
-        "utf-8", errors="replace"
-    )
+    content = base64.b64decode(r.json().get("content", "")).decode("utf-8", errors="replace")
     return CALLER_PATTERN in content
 
 
@@ -152,25 +152,24 @@ def analyse_repo(client: httpx.Client, repo: dict) -> RepoReport:
         thin = False
         if status != "missing":
             thin = is_thin_caller(client, ORG, name, wf)
-        report.workflows.append(
-            WorkflowStatus(name=wf, status=status, is_thin_caller=thin)
-        )
+        report.workflows.append(WorkflowStatus(name=wf, status=status, is_thin_caller=thin))
 
     # File presence
     for path, label in FILES_TO_CHECK.items():
         report.files[label] = file_exists(client, ORG, name, path)
 
     # Derive issues
+    actions_url = f"https://github.com/{ORG}/{name}/actions"
     for wf in report.workflows:
         if wf.status == "fail":
-            report.issues.append(f"workflow failing: {wf.name}")
-        if wf.status != "missing" and not wf.is_thin_caller:
+            report.issues.append(f"workflow failing: {wf.name}\n  → {actions_url}")
+        if name not in SKIP_THIN_CALLER and wf.status != "missing" and not wf.is_thin_caller:
             report.issues.append(f"not a thin caller: {wf.name}")
 
     if report.files.get("mkdocs") and not report.files.get("zensical"):
         report.issues.append("not migrated to zensical")
 
-    if not report.files.get("manifest"):
+    if name not in SKIP_MANIFEST and not report.files.get("manifest"):
         report.issues.append("SE_MANIFEST.toml missing")
 
     if not report.files.get("dependabot"):
@@ -194,7 +193,7 @@ STATUS_SYMBOL = {
 def render(reports: list[RepoReport]) -> None:
     console = Console()
 
-    table = Table(title="toy-gpt org health", show_lines=True)
+    table = Table(title=f"toy-gpt org health", show_lines=True)
     table.add_column("Repo", style="bold")
     table.add_column("ci", justify="center")
     table.add_column("deploy", justify="center")
@@ -212,21 +211,17 @@ def render(reports: list[RepoReport]) -> None:
 
         wf_map = {w.name: w for w in r.workflows}
 
-        def ws(name: str, wf_map: dict[str, WorkflowStatus] = wf_map) -> str:
+        def ws(name: str) -> str:
             w = wf_map.get(name)
             return STATUS_SYMBOL.get(w.status, "?") if w else "—"
 
-        def thin_all(r: RepoReport = r) -> str:
+        def thin_all() -> str:
             non_missing = [w for w in r.workflows if w.status != "missing"]
             if not non_missing:
                 return "—"
-            return (
-                "[green]✓[/green]"
-                if all(w.is_thin_caller for w in non_missing)
-                else "[red]✗[/red]"
-            )
+            return "[green]✓[/green]" if all(w.is_thin_caller for w in non_missing) else "[red]✗[/red]"
 
-        def f(label: str, r: RepoReport = r) -> str:
+        def f(label: str) -> str:
             return "[green]✓[/green]" if r.files.get(label) else "[red]✗[/red]"
 
         issues = "\n".join(r.issues) if r.issues else "[green]ok[/green]"

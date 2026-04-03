@@ -90,26 +90,10 @@ git push -u origin main
 WHY: Keep decision rationale close to code and configuration.
 -->
 
-## Citation
-
-[CITATION.cff](./CITATION.cff)
-
-<!--
-WHY: Support correct citation and attribution.
--->
-
 ## License
 
 [MIT](./LICENSE)
 
 <!--
 WHY: Provide terms of reuse and limits of liability.
--->
-
-## SE Manifest
-
-[SE_MANIFEST.toml](./SE_MANIFEST.toml)
-
-<!--
-WHY: Make explicit the intent, boundaries, and scope of this repository.
 -->
