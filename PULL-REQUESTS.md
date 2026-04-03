@@ -15,4 +15,3 @@ The table below documents common conventions which may be used as appropriate.
 | refactor | Code restructuring without functional change                                  |
 | release  | Tagged releases or version bumps                                              |
 | security | Security-related patches or dependencies                                      |
-

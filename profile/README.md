@@ -11,22 +11,56 @@ when additional context provides little or no benefit.
 - [App](https://toy-gpt.github.io/toy-gpt-chat/) -interactive visualization of next-word (token) prediction in GPT-style language models.
 - [App Repo](https://github.com/toy-gpt/toy-gpt-chat)
 
-## Matrix (Model – Corpus)
+## Training Repositories
 
-| Training repo                                                                           | Corpus trained         | Notes (corpus type)                                    |
-| --------------------------------------------------------------------------------------- | ---------------------- | ------------------------------------------------------ |
-| [`train-100-unigram`](https://github.com/toy-gpt/train-100-unigram)                     | `000_cat_dog.txt`      | single-token model (neutral)                           |
-| [`train-200-bigram`](https://github.com/toy-gpt/train-200-bigram)                       | `000_cat_dog.txt`      | conditional next-token with 2-token stats (neutral)    |
-| [`train-300-context-2`](https://github.com/toy-gpt/train-300-context-2)                 | `000_cat_dog.txt`      | canonical context-2 (neutral)                          |
-| [`train-400-context-3`](https://github.com/toy-gpt/train-400-context-3)                 | `000_cat_dog.txt`      | canonical context-3 (neutral)                          |
-| [`train-100-unigram-animals`](https://github.com/toy-gpt/train-100-unigram-animals)     | `001_animals.txt`      | single-token model (structured)                        |
-| [`train-200-bigram-animals`](https://github.com/toy-gpt/train-200-bigram-animals)       | `001_animals.txt`      | conditional next-token with 2-token stats (structured) |
-| [`train-300-context-2-animals`](https://github.com/toy-gpt/train-300-context-2-animals) | `001_animals.txt`      | canonical context-2 (structured)                       |
-| [`train-400-context-3-animals`](https://github.com/toy-gpt/train-400-context-3-animals) | `001_animals.txt`      | canonical context-3 (structured)                       |
-| [`train-301-context-2-llm-glossary`](https://github.com/toy-gpt/train-301-context-2-llm-glossary) | `010_llm_glossary.txt` | same architecture as 300, different corpus             |
-| `train-302-context-2-repo-tour`                                                         | `020_repo_tour.txt`    | same architecture as 300, different corpus             |
-| `train-500-embeddings`                                                                  | `030_analytics.txt`    | canonical embeddings demo corpus                       |
-| `train-600-attention`                                                                   | `030_analytics.txt`    | same corpus as 500 to isolate effect                   |
+Each repository contains pre-trained artifacts for one model–corpus combination.
+Two things vary independently: the model and the corpus.
+
+### Choose One Model Per Training Repository
+
+Select a model (how many previous tokens are used to predict the next one):
+
+| Code | Model | Context window |
+|---|---|---|
+| 100 | Unigram | 0 tokens; predicts from overall frequency only |
+| 200 / 201 | Bigram | 1 token; predicts from the immediately preceding token |
+| 300 / 301 / 302 | Context-2 | 2 tokens; predicts from the previous two tokens |
+| 400 | Context-3 | 3 tokens; predicts from the previous three tokens |
+| 500 | Embeddings | learns vector representations of tokens |
+| 600 | Attention | dynamically weights which prior tokens matter most |
+
+### Chose One Corpus Per Training Repository
+
+Select a corpus (the text the model is trained on):
+
+| ID | File | Type | Signal |
+|---|---|---|---|
+| 000 | cat_dog.txt | Neutral | Low; adjacency carries little predictive value |
+| 001 | animals.txt | Structured | Higher; natural language patterns |
+| 010 | llm_glossary.txt | Domain | Technical NLP definitions |
+| 020 | repo_tour.txt | Domain | Repository file and folder descriptions |
+| 030 | analytics.txt | Domain | Technical micro-lessons |
+
+### Training Respository Model-Corpus Matrix
+
+| Repository | Model | Corpus |
+|---|---|---|
+| [train-100-unigram](https://github.com/toy-gpt/train-100-unigram) | Unigram | 000 cat_dog (**neutral**) |
+| [train-200-bigram](https://github.com/toy-gpt/train-200-bigram) | Bigram | 000 cat_dog (**neutral**) |
+| [train-300-context-2](https://github.com/toy-gpt/train-300-context-2) | Context-2 | 000 cat_dog (**neutral**) |
+| [train-400-context-3](https://github.com/toy-gpt/train-400-context-3) | Context-3 | 000 cat_dog (**neutral**) |
+| [train-100-unigram-animals](https://github.com/toy-gpt/train-100-unigram-animals) | Unigram | 001 animals (**structured**) |
+| [train-200-bigram-animals](https://github.com/toy-gpt/train-200-bigram-animals) | Bigram | 001 animals (**structured**) |
+| [train-300-context-2-animals](https://github.com/toy-gpt/train-300-context-2-animals) | Context-2 | 001 animals (**structured**) |
+| [train-400-context-3-animals](https://github.com/toy-gpt/train-400-context-3-animals) | Context-3 | 001 animals (**structured**) |
+| [train-201-bigram-llm-glossary](https://github.com/toy-gpt/train-201-bigram-llm-glossary) | Bigram | 010 llm_glossary (**domain**) |
+| [train-301-context-2-llm-glossary](https://github.com/toy-gpt/train-301-context-2-llm-glossary) | Context-2 | 010 llm_glossary (**domain**) |
+| [train-401-context-3-llm-glossary](https://github.com/toy-gpt/train-401-context-3-llm-glossary) | Context-3 | 010 llm_glossary (**domain**) ⚠️ |
+| [train-302-context-2-repo-tour](https://github.com/toy-gpt/train-302-context-2-repo-tour) | Context-2 | 020 repo_tour (**domain**) |
+| [train-500-embeddings](https://github.com/toy-gpt/train-500-embeddings) | Embeddings | 030 analytics (**domain**) |
+| [train-600-attention](https://github.com/toy-gpt/train-600-attention) | Attention | 030 analytics (**domain**) |
+
+⚠️ Too large to commit (428 MB of mostly zeros).
 
 ## Grid View
 

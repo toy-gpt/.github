@@ -1,40 +1,38 @@
 # ============================================================
 # .github/workflows/links.yml (Lychee Link Checker)
 # ============================================================
-# SOURCE: https://github.com/denisecase/templates
-#
 # WHY-FILE: Automated link checking.
 # OBS: Behavior is configured in lychee.toml in this repository.
-# OBS: Runs on pull requests and monthly on schedule; manual trigger always available.
+# OBS: Runs monthly on schedule; manual trigger always available.
+# OBS: Not run on pull requests (mostly dependabot; link checks add noise).
 
 name: Check Links
 
 on:
-  workflow_dispatch: # WHY: Manual trigger - always available
-  pull_request: # WHY: Validates PR links before merge
+  workflow_dispatch:  # WHY: Manual trigger - always available.
+  workflow_call:      # WHY: Allow calling from other repos in this org.
+                      # OBS: schedule trigger only fires from toy-gpt/.github, not callers.
   schedule:
-    - cron: "0 6 1 * *" # WHY: Runs monthly (1st of month)
+    - cron: "0 6 1 * *"  # WHY: Runs monthly (1st of month).
 
 concurrency:
-  # WHY: Prevent multiple simultaneous link checks on same ref
+  # WHY: Prevent multiple simultaneous link checks on same ref.
+  # OBS: github.ref may be undefined for workflow_call; concurrency group falls back gracefully.
   group: link-check-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
-  contents: read # WHY: Needed to checkout code.
-  issues: write # WHY: Needed to create issue on scheduled failures.
-  pull-requests: write # WHY: Needed to comment on PR if links broken.
+  contents: read  # WHY: Needed to checkout code.
+  issues: write   # WHY: Needed to create issue on scheduled failures.
 
 env:
-  PYTHONUNBUFFERED: "1" # WHY: Real-time logging.
-  PYTHONIOENCODING: "utf-8" # WHY: Ensure UTF-8 encoding for international characters.
-  REPORT_FAILURES: "true" # WHY: Enable PR comments and scheduled issues for link failures.
+  REPORT_FAILURES: "true"  # WHY: Enable scheduled issues for link failures.
 
 jobs:
   lychee:
     name: Link checks
-    runs-on: ubuntu-latest # WHY: Linux environment matches most production deployments
-    timeout-minutes: 20 # WHY: Prevent hanging jobs. If over time, likely stuck.
+    runs-on: ubuntu-latest  # WHY: Linux environment matches most production deployments.
+    timeout-minutes: 20     # WHY: Prevent hanging jobs. If over time, likely stuck.
 
     steps:
       - name: 1) Checkout repository code
@@ -42,11 +40,15 @@ jobs:
 
       - name: 2) Check links with Lychee
         id: lychee
+        continue-on-error: true
         uses: lycheeverse/lychee-action@v2.8.0
         with:
-          # WHY: Do not hard-fail this step; always run reporting steps.
-          # Instead, fail the job explicitly at the end if exit_code != 0.
+          # WHY: Do not hard-fail inside the action; decide final status in the gate step.
           fail: false
+          # WHY: Capture output for use in job summary and scheduled issue.
+          output: ./lychee-report.md
+          # OBS: Force markdown so the report is readable in summaries.
+          format: markdown
           args: >
             --config lychee.toml
             --user-agent "${{ github.repository }}/lychee"
@@ -57,30 +59,22 @@ jobs:
             './**/*.yml'
             './**/*.yaml'
         env:
+          # WHY: Allows Lychee to authenticate to GitHub when checking links.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 3) Comment on PR if links broken
-        if: steps.lychee.outputs.exit_code != 0 && github.event_name == 'pull_request' && env.REPORT_FAILURES == 'true'
-        uses: actions/github-script@v8
-        with:
-          script: |
-            const runUrl = `${context.payload.repository.html_url}/actions/runs/${context.runId}`;
-            const comment = [
-              "## Link Check Results",
-              "",
-              `Some links appear broken. Check the workflow logs: ${runUrl}`,
-            ].join("\n");
-
-            await github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: comment,
-            });
+      - name: 3) Add results to job summary
+        if: always()
+        run: |
+          echo "## Link Check Report" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f ./lychee-report.md ]; then
+            cat ./lychee-report.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No report generated." >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: 4) Create issue for scheduled failures
-        # WHY: Track broken links found during scheduled checks
-        # OBS: Only creates issue if none already open with 'broken-links' label
+        # WHY: Track broken links found during scheduled checks.
+        # OBS: Only creates issue if none already open with 'broken-links' label.
         if: steps.lychee.outputs.exit_code != 0 && github.event_name == 'schedule' && env.REPORT_FAILURES == 'true'
         uses: actions/github-script@v8
         with:
