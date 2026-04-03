@@ -1,0 +1,179 @@
+# ============================================================
+# .github/workflows/ci-org.yml (Continuous Integration)
+# ============================================================
+# WHY-FILE: Validate repository hygiene and documentation builds.
+# REQ: Any check that can be run locally MUST be available locally via pre-commit.
+# REQ: CI MUST NOT introduce arbitrary rules that are not reproducible locally.
+# OBS: CI validates only; it never edits files or deploys docs.
+# OBS: Optional tools (ruff, pyright, deptry, pytest, mkdocs) run only if configured.
+
+name: CI (Toy GPT)
+
+# WHY: Validate docs and repo metadata on PRs and pushes.
+# OBS: This workflow validates only; it never deploys.
+
+on:
+  push:
+    branches: [main]        # WHY: Run when pushing to main branch.
+  pull_request:
+    branches: [main]        # WHY: Run on pull requests targeting main branch.
+  workflow_dispatch:        # WHY: Allow manual triggering from Actions tab.
+  workflow_call:            # WHY: Allow calling from other repos in this org.
+
+permissions:                # WHY: Use least privileges required.
+  contents: read
+
+env:
+  PYTHONUNBUFFERED: "1"         # WHY: Real-time logging.
+  PYTHONIOENCODING: "utf-8"     # WHY: Ensure UTF-8 encoding for international characters.
+
+jobs:
+  ci:
+    name: CI checks
+    runs-on: ubuntu-latest      # WHY: Linux environment matches most production deployments.
+    timeout-minutes: 30         # WHY: Prevent hanging jobs. If over, it is likely stuck.
+
+    steps:
+
+      # ============================================================
+      # ASSEMBLE: Get code and set up environment
+      # ============================================================
+
+      - name: A1) Checkout repository code
+        # WHY: Needed to access files for all subsequent checks.
+        uses: actions/checkout@v6
+
+      - name: A2) Run pre-commit (all files)
+        # WHY: Single source of truth for locally runnable quality gates.
+        # OBS: Fails if hooks would modify files; does not commit changes.
+        id: precommit
+        uses: pre-commit/action@v3.0.1
+        with:
+          extra_args: --all-files
+
+      - name: A2f) If pre-commit failed, show local fix instructions
+        if: failure()
+        run: |
+          echo "## Pre-commit failed" >> "$GITHUB_STEP_SUMMARY"
+          echo "Run pre-commit locally and commit the resulting changes." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: A3) Install uv (with caching)
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"  # WHY: Only re-cache when dependencies change.
+
+      - name: A4) Install Python 3.14
+        run: uv python install 3.14
+
+      - name: A5) Sync to install all dependencies
+        run: uv sync --extra dev --extra docs --upgrade
+
+      # ============================================================
+      # BASELINE CHECKS: Validate project metadata and code quality
+      # ============================================================
+
+      - name: B1) Validate pyproject.toml structure
+        run: uvx validate-pyproject
+
+      - name: B2) Ruff format check (if configured)
+        # OBS: Skipped if [tool.ruff] is not present in pyproject.toml.
+        run: |
+          if grep -q "\[tool\.ruff\]" pyproject.toml; then
+            uv run ruff format --check --diff .
+          else
+            echo "No ruff config found; skipping format check."
+          fi
+
+      - name: B3) Ruff lint check (if configured)
+        # OBS: Skipped if [tool.ruff] is not present in pyproject.toml.
+        run: |
+          if grep -q "\[tool\.ruff\]" pyproject.toml; then
+            uv run ruff check .
+          else
+            echo "No ruff config found; skipping lint check."
+          fi
+
+      - name: B4) Pyright type check (if configured)
+        # OBS: Skipped if [tool.pyright] is not present in pyproject.toml.
+        run: |
+          if grep -q "\[tool\.pyright\]" pyproject.toml; then
+            uv run pyright
+          else
+            echo "No pyright config found; skipping type check."
+          fi
+
+      - name: B5) Deptry dependency check (if configured)
+        # OBS: Skipped if [tool.deptry] is not present in pyproject.toml.
+        run: |
+          if grep -q "\[tool\.deptry\]" pyproject.toml; then
+            uvx deptry .
+          else
+            echo "No deptry config found; skipping dependency check."
+          fi
+
+      # ============================================================
+      # COVERAGE AND TESTS: Verify functionality
+      # ============================================================
+
+      - name: C1) Run pytest with coverage (if tests exist)
+        # OBS: Skipped if no test files found under tests/.
+        run: |
+          if [ -d "tests" ] && [ -n "$(find tests -name 'test_*.py' -o -name '*_test.py' 2>/dev/null)" ]; then
+            uv run pytest --cov-report=xml
+          else
+            echo "No tests found; skipping pytest."
+            echo "## No Tests Found" >> "$GITHUB_STEP_SUMMARY"
+            echo '<?xml version="1.0" ?><coverage></coverage>' > coverage.xml
+          fi
+
+      - name: C2) Add coverage to job summary (if available)
+        if: always()
+        run: |
+          echo "## Test Coverage Report" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f ".coverage" ]; then
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            uv run coverage report >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No coverage data available." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: C3) Upload coverage artifact (if available)
+        if: always() && hashFiles('coverage.xml') != ''
+        uses: actions/upload-artifact@v6
+        with:
+          name: coverage-report
+          path: coverage.xml
+          retention-days: 30
+
+      # ============================================================
+      # DEPLOY PRE-CHECKS: Validate docs build before any deployment
+      # ============================================================
+
+      - name: D1) Fetch shared MkDocs base config (if mkdocs.yml present)
+        # OBS: Legacy; remove once all repos migrated to Zensical.
+        run: |
+          if [ -f "mkdocs.yml" ] || [ -f "mkdocs.yaml" ]; then
+            curl --fail -o mkdocs.base.yaml \
+              https://raw.githubusercontent.com/toy-gpt/.github/refs/heads/main/docs-theme/mkdocs.base.yaml
+          else
+            echo "No mkdocs config found; skipping base config fetch."
+          fi
+
+      - name: D2) Build docs with MkDocs (if mkdocs.yml present)
+        # OBS: Legacy; remove once all repos migrated to Zensical.
+        run: |
+          if [ -f "mkdocs.yml" ] || [ -f "mkdocs.yaml" ]; then
+            uv run mkdocs build --strict
+          else
+            echo "No mkdocs config found; skipping MkDocs build."
+          fi
+
+      - name: D3) Build docs with Zensical (if zensical.toml present)
+        run: |
+          if [ -f "zensical.toml" ]; then
+            uv run zensical build
+          else
+            echo "No zensical.toml found; skipping Zensical build."
+          fi
