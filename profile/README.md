@@ -20,10 +20,8 @@ using the context of text seen so far.
 
 During training, an LLM is exposed to large amounts of human language
 and learns **patterns** in how words follow one another.
-
 When generating a response, the model works step by step,
 using the words so far (its context window) to choose the next one.
-
 **At each step**, it makes a **best guess** based on what it has learned.
 
 It doesn't plan a sentence in advance;
@@ -34,12 +32,14 @@ the result **emerges one word at a time**.
 These examples illustrate how changing:
 
 1. the **context window** (e.g., 0, 1, 2, or 3 prior words) and
-2. the **training text** affects next-token predictions
+2. the **training text**
 
+affects next-token predictions.
 The results determine how well the conversation goes.
 
-We include a **neutral** cat-dog corpora to illustrate cases where
-additional context (tracking prior words) intentionally provides no benefit.
+We include a **neutral** cat-dog corpus (linked below)
+to illustrate cases where additional context (more prior words)
+provides little or no benefit.
 
 ## LLM Training Costs
 
