@@ -102,8 +102,10 @@ def get_repos(client: httpx.Client, org: str) -> list[dict]:
 
 def get_latest_run(client: httpx.Client, org: str, repo: str, workflow: str) -> str:
     """Returns 'pass', 'fail', 'missing', or 'unknown'."""
-    r = client.get(f"/repos/{org}/{repo}/actions/workflows/{workflow}/runs",
-                   params={"per_page": 1, "branch": "main"})
+    r = client.get(
+        f"/repos/{org}/{repo}/actions/workflows/{workflow}/runs",
+        params={"per_page": 1, "branch": "main"},
+    )
     if r.status_code == 404:
         return "missing"
     if r.status_code != 200:
@@ -130,7 +132,10 @@ def is_thin_caller(client: httpx.Client, org: str, repo: str, workflow: str) -> 
     if r.status_code != 200:
         return False
     import base64
-    content = base64.b64decode(r.json().get("content", "")).decode("utf-8", errors="replace")
+
+    content = base64.b64decode(r.json().get("content", "")).decode(
+        "utf-8", errors="replace"
+    )
     return CALLER_PATTERN in content
 
 
@@ -152,7 +157,9 @@ def analyse_repo(client: httpx.Client, repo: dict) -> RepoReport:
         thin = False
         if status != "missing":
             thin = is_thin_caller(client, ORG, name, wf)
-        report.workflows.append(WorkflowStatus(name=wf, status=status, is_thin_caller=thin))
+        report.workflows.append(
+            WorkflowStatus(name=wf, status=status, is_thin_caller=thin)
+        )
 
     # File presence
     for path, label in FILES_TO_CHECK.items():
@@ -163,7 +170,11 @@ def analyse_repo(client: httpx.Client, repo: dict) -> RepoReport:
     for wf in report.workflows:
         if wf.status == "fail":
             report.issues.append(f"workflow failing: {wf.name}\n  → {actions_url}")
-        if name not in SKIP_THIN_CALLER and wf.status != "missing" and not wf.is_thin_caller:
+        if (
+            name not in SKIP_THIN_CALLER
+            and wf.status != "missing"
+            and not wf.is_thin_caller
+        ):
             report.issues.append(f"not a thin caller: {wf.name}")
 
     if report.files.get("mkdocs") and not report.files.get("zensical"):
@@ -219,7 +230,11 @@ def render(reports: list[RepoReport]) -> None:
             non_missing = [w for w in r.workflows if w.status != "missing"]
             if not non_missing:
                 return "—"
-            return "[green]✓[/green]" if all(w.is_thin_caller for w in non_missing) else "[red]✗[/red]"
+            return (
+                "[green]✓[/green]"
+                if all(w.is_thin_caller for w in non_missing)
+                else "[red]✗[/red]"
+            )
 
         def f(label: str, r=r) -> str:
             return "[green]✓[/green]" if r.files.get(label) else "[red]✗[/red]"
