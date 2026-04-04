@@ -1,39 +1,41 @@
 # ============================================================
 # .github/workflows/links.yml (Lychee Link Checker)
 # ============================================================
+# SOURCE: https://github.com/denisecase/templates
+#
 # WHY-FILE: Automated link checking.
 # OBS: Behavior is configured in lychee.toml in this repository.
-# OBS: Runs monthly on schedule; manual trigger always available.
-# OBS: Not run on pull requests (mostly dependabot; link checks add noise).
+# OBS: Runs on pull requests and monthly on schedule; manual trigger always available.
 
 name: Check Links
 
 on:
-  workflow_dispatch:  # WHY: Manual trigger - always available.
-  workflow_call:      # WHY: Allow calling from other repos in this org.
-                      # OBS: schedule trigger only fires from toy-gpt/.github, not callers.
+  workflow_dispatch: # WHY: Manual trigger - always available
+  pull_request: # WHY: Validates PR links before merge
   schedule:
-    - cron: "0 6 1 * *"  # WHY: Runs monthly (1st of month).
+    - cron: "0 6 1 * *" # WHY: Runs monthly (1st of month)
 
 concurrency:
-  # WHY: Prevent multiple simultaneous link checks on same ref.
-  # OBS: github.ref may be undefined for workflow_call; concurrency group falls back gracefully.
+  # WHY: Prevent multiple simultaneous link checks on same ref
   group: link-check-${{ github.ref || github.run_id }}
   cancel-in-progress: true
 
 permissions:
-  contents: read  # WHY: Needed to checkout code.
-  issues: write   # WHY: Needed to create issue on scheduled failures.
+  contents: read # WHY: Needed to checkout code.
+  issues: write # WHY: Needed to create issue on scheduled failures.
+  pull-requests: write # WHY: Needed to comment on PR if links broken.
 
 env:
-  REPORT_FAILURES: "true"      # WHY: Enable scheduled issues for link failures.
-  REPORT_PATH: "./lychee/out.md"  # WHY: Use the action's conventional markdown report path.
+  PYTHONUNBUFFERED: "1" # WHY: Real-time logging.
+  PYTHONIOENCODING: "utf-8" # WHY: Ensure UTF-8 encoding for international characters.
+  REPORT_FAILURES: "true" # WHY: Enable PR comments and scheduled issues for link failures.
+  REPORT_PATH: "./lychee/out.md" # WHY: Predictable markdown report path for summary and issue content.
 
 jobs:
   lychee:
     name: Link checks
-    runs-on: ubuntu-latest  # WHY: Linux environment matches most production deployments.
-    timeout-minutes: 20     # WHY: Prevent hanging jobs. If over time, likely stuck.
+    runs-on: ubuntu-latest # WHY: Linux environment matches most production deployments
+    timeout-minutes: 20 # WHY: Prevent hanging jobs. If over time, likely stuck.
 
     steps:
       - name: 1) Checkout repository code
@@ -44,13 +46,14 @@ jobs:
         continue-on-error: true
         uses: lycheeverse/lychee-action@v2.8.0
         with:
-          # WHY: Do not hard-fail inside the action; decide final status in the gate step.
+          # WHY: Do not hard-fail this step; always run reporting steps.
+          # Instead, fail the job explicitly at the end if exit_code != 0.
           fail: false
-          # WHY: Write the markdown report to a predictable file we can publish ourselves.
-          output: ./lychee/out.md
-          # WHY: Force markdown so the report includes the summary table.
+          # WHY: Generate a markdown report we can surface in the GitHub summary.
           format: markdown
-          # WHY: Disable the action's own summary so there is exactly one summary path.
+          # WHY: Write the markdown report to a predictable file path.
+          output: ./lychee/out.md
+          # WHY: Disable built-in summary rendering; we generate our own stable summary below.
           jobSummary: false
           args: >
             --config lychee.toml
@@ -61,60 +64,68 @@ jobs:
             './**/*.tex'
             './**/*.yml'
             './**/*.yaml'
-          # OBS: Always use latest Lychee release.
-          lycheeVersion: latest
         env:
-          # WHY: Allows Lychee to authenticate to GitHub when checking links.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 3) Add results to job summary
         if: always()
+        shell: bash
         run: |
-          mkdir -p "$(dirname "${REPORT_PATH}")"
+          report_text=""
+          if [ -f "${REPORT_PATH}" ]; then
+            report_text="$(cat "${REPORT_PATH}")"
+          fi
+
+          extract_count() {
+            local label="$1"
+            local value
+            value="$(printf '%s\n' "$report_text" | awk -F'|' -v pat="$label" '
+              $0 ~ pat {
+                gsub(/^[[:space:]]+|[[:space:]]+$/, "", $3)
+                print $3
+                exit
+              }
+            ')"
+            if [ -z "$value" ]; then
+              value="0"
+            fi
+            printf '%s' "$value"
+          }
+
+          total="$(extract_count "Total")"
+          successful="$(extract_count "Successful")"
+          timeouts="$(extract_count "Timeouts")"
+          redirected="$(extract_count "Redirected")"
+          excluded="$(extract_count "Excluded")"
+          unknown="$(extract_count "Unknown")"
+          errors="$(extract_count "Errors")"
+          unsupported="$(extract_count "Unsupported")"
 
           {
             echo "## Link Check Report"
             echo ""
+            echo "| Status        | Count |"
+            echo "|---------------|-------|"
+            echo "| Total         | ${total} |"
+            echo "| Successful    | ${successful} |"
+            echo "| Timeouts      | ${timeouts} |"
+            echo "| Redirected    | ${redirected} |"
+            echo "| Excluded      | ${excluded} |"
+            echo "| Unknown       | ${unknown} |"
+            echo "| Errors        | ${errors} |"
+            echo "| Unsupported   | ${unsupported} |"
+            echo ""
 
             if [ -s "${REPORT_PATH}" ]; then
+              echo "<details>"
+              echo "<summary>Full Lychee markdown report</summary>"
+              echo ""
+              echo ""
               cat "${REPORT_PATH}"
+              echo ""
+              echo "</details>"
             else
-              cat << 'EOF'
-          # Summary
-
-          | Status        | Count |
-          |---------------|-------|
-          | 🔍 Total      | 0     |
-          | ✅ Successful | 0     |
-          | ⏳ Timeouts   | 0     |
-          | 🔀 Redirected | 0     |
-          | 👻 Excluded   | 0     |
-          | ❓ Unknown    | 0     |
-          | 🚫 Errors     | 0     |
-          | ⛔ Unsupported| 0     |
-
-          No report file was generated at the expected path.
-
-          This usually means the Lychee action did not write the markdown report where this workflow expected it.
-          EOF
-            fi
-
-            # WHY: Provide a fix-it hint when the Dependabot security page is flagged.
-            if [ -f "${REPORT_PATH}" ] && grep -q "/security/dependabot" "${REPORT_PATH}"; then
-              cat << 'EOF'
-
-          ## Fix for Dependabot security link (GitHub settings)
-          If the link checker reports a 404 for the Dependabot security page, it is often because Advanced Security options are not enabled.
-
-          Please go to:
-          Repository Settings -> Advanced Security
-
-          Enable at least:
-          - Dependabot security updates
-          - Grouped security updates (recommended)
-
-          After enabling, the Dependabot security page link should resolve.
-          EOF
+              echo "No markdown report was generated at \`${REPORT_PATH}\`."
             fi
 
             echo ""
@@ -126,15 +137,50 @@ jobs:
             echo "- Report path: \`${REPORT_PATH}\`"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: 4) Create issue for scheduled failures
-        # WHY: Track broken links found during scheduled checks.
-        # OBS: Only creates issue if none already open with 'broken-links' label.
+      - name: 4) Comment on PR if links broken
+        if: steps.lychee.outputs.exit_code != 0 && github.event_name == 'pull_request' && env.REPORT_FAILURES == 'true'
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs = require("fs");
+            const runUrl = `${context.payload.repository.html_url}/actions/runs/${context.runId}`;
+
+            let report = "Lychee report file was not found.";
+            try {
+              report = fs.readFileSync("./lychee/out.md", "utf8");
+            } catch (error) {
+              // Keep fallback text above.
+            }
+
+            const comment = [
+              "## Link Check Results",
+              "",
+              `Some links appear broken. Check the workflow run: ${runUrl}`,
+              "",
+              "<details><summary>Lychee report</summary>",
+              "",
+              "```md",
+              report,
+              "```",
+              "",
+              "</details>",
+            ].join("\n");
+
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment,
+            });
+
+      - name: 5) Create issue for scheduled failures
+        # WHY: Track broken links found during scheduled checks
+        # OBS: Only creates issue if none already open with 'broken-links' label
         if: steps.lychee.outputs.exit_code != 0 && github.event_name == 'schedule' && env.REPORT_FAILURES == 'true'
         uses: actions/github-script@v8
         with:
           script: |
             const fs = require("fs");
-
             const owner = context.repo.owner;
             const repo = context.repo.repo;
             const date = new Date().toISOString().split("T")[0];
@@ -176,18 +222,17 @@ jobs:
               });
             }
 
-      - name: 5) Gate fail job if broken links found
-        # WHY: Ensure the overall status is not green when broken links are detected.
+      - name: 6) Fail job if broken links were found
         if: always()
         run: |
           code="${{ steps.lychee.outputs.exit_code }}"
 
           if [ -z "$code" ]; then
-            echo "::error::Lychee exit code missing (treating as failure so status is not green)."
+            echo "Lychee exit code was missing. Failing workflow defensively."
             exit 1
           fi
 
           if [ "$code" != "0" ]; then
-            echo "::error::Broken links detected (lychee exit code $code). See the job summary report."
+            echo "Lychee found broken links (exit_code=$code). Failing workflow."
             exit 1
           fi
