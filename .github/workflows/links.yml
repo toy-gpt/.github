@@ -79,15 +79,22 @@ jobs:
           extract_count() {
             local label="$1"
             local value
-            value="$(printf '%s\n' "$report_text" | awk -F'|' -v pat="$label" '
-              $0 ~ pat {
-                gsub(/^[[:space:]]+|[[:space:]]+$/, "", $3)
-                print $3
-                exit
-              }
-            ')"
+            value="$(
+              printf '%s\n' "$report_text" | awk -F'|' -v target="$label" '
+                /^\|/ {
+                  label = $2
+                  count = $3
+                  gsub(/^[[:space:]]+|[[:space:]]+$/, "", label)
+                  gsub(/^[[:space:]]+|[[:space:]]+$/, "", count)
+                  if (label == target) {
+                    print count
+                    exit
+                  }
+                }
+              '
+            )"
             if [ -z "$value" ]; then
-              value="0"
+              value="n/a"
             fi
             printf '%s' "$value"
           }
@@ -101,19 +108,51 @@ jobs:
           errors="$(extract_count "Errors")"
           unsupported="$(extract_count "Unsupported")"
 
+          parse_ok="true"
+          for value in \
+            "$total" \
+            "$successful" \
+            "$timeouts" \
+            "$redirected" \
+            "$excluded" \
+            "$unknown" \
+            "$errors" \
+            "$unsupported"
+          do
+            if [ "$value" = "n/a" ]; then
+              parse_ok="false"
+              break
+            fi
+          done
+
           {
             echo "## Link Check Report"
             echo ""
-            echo "| Status        | Count |"
-            echo "|---------------|-------|"
-            echo "| Total         | ${total} |"
-            echo "| Successful    | ${successful} |"
-            echo "| Timeouts      | ${timeouts} |"
-            echo "| Redirected    | ${redirected} |"
-            echo "| Excluded      | ${excluded} |"
-            echo "| Unknown       | ${unknown} |"
-            echo "| Errors        | ${errors} |"
-            echo "| Unsupported   | ${unsupported} |"
+
+            if [ "$parse_ok" = "true" ]; then
+              echo "| Status        | Count |"
+              echo "|---------------|-------|"
+              echo "| Total         | ${total} |"
+              echo "| Successful    | ${successful} |"
+              echo "| Timeouts      | ${timeouts} |"
+              echo "| Redirected    | ${redirected} |"
+              echo "| Excluded      | ${excluded} |"
+              echo "| Unknown       | ${unknown} |"
+              echo "| Errors        | ${errors} |"
+              echo "| Unsupported   | ${unsupported} |"
+            else
+              echo "Count extraction did not match the current Lychee report format."
+              echo ""
+              echo "| Status      | Value |"
+              echo "|-------------|-------|"
+              echo "| Exit code   | ${{ steps.lychee.outputs.exit_code }} |"
+              if [ -s "${REPORT_PATH}" ]; then
+                echo "| Report file | present |"
+              else
+                echo "| Report file | missing |"
+              fi
+            fi
+
             echo ""
 
             if [ -s "${REPORT_PATH}" ]; then
