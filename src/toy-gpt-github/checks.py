@@ -7,7 +7,7 @@ WHY: Scan all repos in the toy-gpt org and report on workflow status
 USAGE:
     uv run --env-file .env python src/toy-gpt-github/checks.py
     uv run --env-file .env python -m toy-gpt-github.checks
-    uv run --env-file .env python src/toy-gpt-github/checks.py --format=markdown > org-health.md
+    uv run --env-file .env python src/toy-gpt-github/checks.py --write-markdown org-health.md
 
 REQUIRES:
     export GITHUB_TOKEN=<your-pat>   # needs repo + actions read scope
@@ -17,6 +17,7 @@ REQUIRES:
 import os
 import sys
 from dataclasses import dataclass, field
+from pathlib import Path
 
 import httpx
 from rich.console import Console
@@ -132,6 +133,7 @@ def is_thin_caller(client: httpx.Client, org: str, repo: str, workflow: str) -> 
     r = client.get(f"/repos/{org}/{repo}/contents/.github/workflows/{workflow}")
     if r.status_code != 200:
         return False
+
     import base64
 
     content = base64.b64decode(r.json().get("content", "")).decode(
@@ -170,7 +172,7 @@ def analyse_repo(client: httpx.Client, repo: dict) -> RepoReport:
     actions_url = f"https://github.com/{ORG}/{name}/actions"
     for wf in report.workflows:
         if wf.status == "fail":
-            report.issues.append(f"workflow failing: {wf.name}\n  → {actions_url}")
+            report.issues.append(f"workflow failing: {wf.name}\n  -> {actions_url}")
         if (
             name not in SKIP_THIN_CALLER
             and wf.status != "missing"
@@ -192,9 +194,9 @@ def analyse_repo(client: httpx.Client, repo: dict) -> RepoReport:
 # ============================================================
 
 STATUS_SYMBOL = {
-    "pass": "[green]✓[/green]",
-    "fail": "[red]✗[/red]",
-    "missing": "[dim]—[/dim]",
+    "pass": "[green]yes[/green]",
+    "fail": "[red]NO[/red]",
+    "missing": "[dim]-[/dim]",
     "unknown": "[yellow]?[/yellow]",
 }
 
@@ -221,27 +223,29 @@ def render(reports: list[RepoReport]) -> None:
 
     for r in reports:
         if r.archived:
-            table.add_row(f"[dim]{r.name} (archived)[/dim]", *["—"] * 8)
+            table.add_row(f"[dim]{r.name} (archived)[/dim]", *["-"] * 8)
             continue
 
         wf_map = {w.name: w for w in r.workflows}
 
         def ws(name: str, wf_map=wf_map) -> str:
             w = wf_map.get(name)
-            return STATUS_SYMBOL.get(w.status, "?") if w else "—"
+            return STATUS_SYMBOL.get(w.status, "?") if w else "-"
 
         def thin_all(r=r) -> str:
+            if r.name in SKIP_THIN_CALLER:
+                return "[dim]-[/dim]"
             non_missing = [w for w in r.workflows if w.status != "missing"]
             if not non_missing:
-                return "—"
+                return "[dim]-[/dim]"
             return (
-                "[green]✓[/green]"
+                "[green]yes[/green]"
                 if all(w.is_thin_caller for w in non_missing)
-                else "[red]✗[/red]"
+                else "[red]NO[/red]"
             )
 
         def f(label: str, r=r) -> str:
-            return "[green]✓[/green]" if r.files.get(label) else "[red]✗[/red]"
+            return "[green]yes[/green]" if r.files.get(label) else "[red]NO[/red]"
 
         issues = "\n".join(r.issues) if r.issues else "[green]ok[/green]"
 
@@ -280,17 +284,12 @@ def render_markdown(reports: list[RepoReport]) -> str:
     def sym(status: str) -> str:
         return {
             "pass": "yes",
-            "fail": "no",
+            "fail": "NO",
             "missing": "-",
             "unknown": "?",
         }.get(status, "?")
 
-    def md_cell(text: str) -> str:
-        text = text.replace("\n", "<br>")
-        text = text.replace("|", "\\|")
-        return text
-
-    lines = []
+    lines: list[str] = []
     lines.append("# toy-gpt org health")
     lines.append("")
     lines.append("| " + " | ".join(headers) + " |")
@@ -309,13 +308,17 @@ def render_markdown(reports: list[RepoReport]) -> str:
             w = wf_map.get(name)
             return sym(w.status) if w else "-"
 
-        non_missing = [w for w in r.workflows if w.status != "missing"]
-        thin = "-"
-        if non_missing:
-            thin = "yes" if all(w.is_thin_caller for w in non_missing) else "no"
+        if r.name in SKIP_THIN_CALLER:
+            thin = "-"
+        else:
+            non_missing = [w for w in r.workflows if w.status != "missing"]
+            if not non_missing:
+                thin = "-"
+            else:
+                thin = "yes" if all(w.is_thin_caller for w in non_missing) else "NO"
 
         def f(label: str, r=r) -> str:
-            return "yes" if r.files.get(label) else "no"
+            return "yes" if r.files.get(label) else "NO"
 
         issues = "; ".join(r.issues) if r.issues else "ok"
 
@@ -337,8 +340,14 @@ def render_markdown(reports: list[RepoReport]) -> str:
 
     lines.append("")
     lines.append(f"**{clean}/{total} repos clean**")
+    lines.append("")
 
     return "\n".join(lines)
+
+
+def write_markdown_report(reports: list[RepoReport], output_path: str) -> None:
+    path = Path(output_path)
+    path.write_text(render_markdown(reports), encoding="utf-8")
 
 
 # ============================================================
@@ -352,30 +361,30 @@ def main() -> None:
         print("ERROR: GITHUB_TOKEN not set.", file=sys.stderr)
         sys.exit(1)
 
-    output_format = "console"
-    if "--format=markdown" in sys.argv:
-        output_format = "markdown"
-
-    verbose = output_format == "console"
+    markdown_output_path = None
+    if "--write-markdown" in sys.argv:
+        idx = sys.argv.index("--write-markdown")
+        if idx + 1 >= len(sys.argv):
+            print("ERROR: --write-markdown requires a file path.", file=sys.stderr)
+            sys.exit(1)
+        markdown_output_path = sys.argv[idx + 1]
 
     with make_client(token) as client:
-        if verbose:
-            print(f"Fetching repos for {ORG}...")
+        print(f"Fetching repos for {ORG}...")
         repos = get_repos(client, ORG)
         repos.sort(key=lambda r: r["name"])
-        if verbose:
-            print(f"Found {len(repos)} repos. Scanning...\n")
+        print(f"Found {len(repos)} repos. Scanning...\n")
 
         reports = []
         for repo in repos:
-            if verbose:
-                print(f"  {repo['name']}")
+            print(f"  {repo['name']}")
             reports.append(analyse_repo(client, repo))
 
-    if output_format == "markdown":
-        print(render_markdown(reports))
-    else:
-        render(reports)
+    render(reports)
+
+    if markdown_output_path:
+        write_markdown_report(reports, markdown_output_path)
+        print(f"\nWrote markdown report to {markdown_output_path}")
 
 
 if __name__ == "__main__":
