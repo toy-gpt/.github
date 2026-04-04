@@ -99,7 +99,7 @@ Interactive visualization of next-word (token) prediction in GPT-style language 
 Each repository contains pre-trained artifacts for one model–corpus combination.
 Two things vary independently: the model and the corpus.
 
-### Choose One Model Per Training Repository
+### Choose One Model (Per Training Repository)
 
 Select a model (how many previous tokens are used to predict the next one):
 
@@ -112,7 +112,7 @@ Select a model (how many previous tokens are used to predict the next one):
 | 500             | Embeddings | learns vector representations of tokens                |
 | 600             | Attention  | dynamically weights which prior tokens matter most     |
 
-### Chose One Corpus Per Training Repository
+### Chose One Corpus (Per Training Repository)
 
 Select a corpus (the text the model is trained on):
 
@@ -124,28 +124,28 @@ Select a corpus (the text the model is trained on):
 | 020 | repo_tour.txt    | Domain     | Repository file and folder descriptions        |
 | 030 | analytics.txt    | Domain     | Technical micro-lessons                        |
 
-### Training Repository Model-Corpus Matrix
+### Training Repositories: Model-Corpus Matrix
 
-| Repository                                                                                      | Model      | Corpus                                                                                                                                       | Context |
-| ----------------------------------------------------------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| [train-100-unigram](https://github.com/toy-gpt/train-100-unigram)                               | Unigram    | [000 cat_dog](https://raw.githubusercontent.com/toy-gpt/train-100-unigram/refs/heads/main/corpus/000_cat_dog.txt) (**neutral**)              | 0       |
-| [train-200-bigram](https://github.com/toy-gpt/train-200-bigram)                                 | Bigram     | [000 cat_dog](https://raw.githubusercontent.com/toy-gpt/train-200-bigram/refs/heads/main/corpus/000_cat_dog.txt) (**neutral**)               | 1       |
-| [train-300-context-2](https://github.com/toy-gpt/train-300-context-2)                           | Context-2  | [000 cat_dog](https://raw.githubusercontent.com/toy-gpt/train-300-context-2/refs/heads/main/corpus/000_cat_dog.txt) (**neutral**)            | 2       |
-| [train-400-context-3](https://github.com/toy-gpt/train-400-context-3)                           | Context-3  | [000 cat_dog](https://raw.githubusercontent.com/toy-gpt/train-400-context-3/refs/heads/main/corpus/000_cat_dog.txt) (**neutral**)            | 3       |
-| [train-100-unigram-animals](https://github.com/toy-gpt/train-100-unigram-animals)               | Unigram    | [001 animals](https://raw.githubusercontent.com/toy-gpt/train-100-unigram-animals/refs/heads/main/corpus/001_animals.txt) (**structured**)   | 0       |
-| [train-200-bigram-animals](https://github.com/toy-gpt/train-200-bigram-animals)                 | Bigram     | [001 animals](https://raw.githubusercontent.com/toy-gpt/train-200-bigram-animals/refs/heads/main/corpus/001_animals.txt) (**structured**)    | 1       |
-| [train-300-context-2-animals](https://github.com/toy-gpt/train-300-context-2-animals)           | Context-2  | [001 animals](https://raw.githubusercontent.com/toy-gpt/train-300-context-2-animals/refs/heads/main/corpus/001_animals.txt) (**structured**) | 2       |
-| [train-400-context-3-animals](https://github.com/toy-gpt/train-400-context-3-animals)           | Context-3  | [001 animals](https://raw.githubusercontent.com/toy-gpt/train-400-context-3-animals/refs/heads/main/corpus/001_animals.txt) (**structured**) | 3       |
-| [train-201-bigram-llm-glossary](https://github.com/toy-gpt/train-201-bigram-llm-glossary)       | Bigram     | 010 llm_glossary (**domain**)                                                                                                                | 1       |
-| [train-301-context-2-llm-glossary](https://github.com/toy-gpt/train-301-context-2-llm-glossary) | Context-2  | 010 llm_glossary (**domain**)                                                                                                                | 2       |
-| [train-401-context-3-llm-glossary](https://github.com/toy-gpt/train-401-context-3-llm-glossary) | Context-3  | 010 llm_glossary (**domain**) ⚠️                                                                                                             | 3       |
-| [train-302-context-2-repo-tour](https://github.com/toy-gpt/train-302-context-2-repo-tour)       | Context-2  | 020 repo_tour (**domain**)                                                                                                                   | 2       |
-| [train-500-embeddings](https://github.com/toy-gpt/train-500-embeddings)                         | Embeddings | 030 analytics (**domain**)                                                                                                                   | 2       |
-| [train-600-attention](https://github.com/toy-gpt/train-600-attention)                           | Attention  | 030 analytics (**domain**) ℹ️                                                                                                                | 2       |
-| [train-600-attention-3](https://github.com/toy-gpt/train-600-attention-3)                       | Attention  | 030 analytics (**domain**) ℹ️                                                                                                                | 3       |
+| Repository                                                                                      | Model      | Corpus                                                                                                                                                     | Context |
+| ----------------------------------------------------------------------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| [train-100-unigram](https://github.com/toy-gpt/train-100-unigram)                               | Unigram    | [000 cat_dog](https://raw.githubusercontent.com/toy-gpt/train-100-unigram/refs/heads/main/corpus/000_cat_dog.txt) (**neutral**)                            | 0       |
+| [train-200-bigram](https://github.com/toy-gpt/train-200-bigram)                                 | Bigram     | [000 cat_dog](https://raw.githubusercontent.com/toy-gpt/train-200-bigram/refs/heads/main/corpus/000_cat_dog.txt) (**neutral**)                             | 1       |
+| [train-300-context-2](https://github.com/toy-gpt/train-300-context-2)                           | Context-2  | [000 cat_dog](https://raw.githubusercontent.com/toy-gpt/train-300-context-2/refs/heads/main/corpus/000_cat_dog.txt) (**neutral**)                          | 2       |
+| [train-400-context-3](https://github.com/toy-gpt/train-400-context-3)                           | Context-3  | [000 cat_dog](https://raw.githubusercontent.com/toy-gpt/train-400-context-3/refs/heads/main/corpus/000_cat_dog.txt) (**neutral**)                          | 3       |
+| [train-100-unigram-animals](https://github.com/toy-gpt/train-100-unigram-animals)               | Unigram    | [001 animals](https://raw.githubusercontent.com/toy-gpt/train-100-unigram-animals/refs/heads/main/corpus/001_animals.txt) (**structured**)                 | 0       |
+| [train-200-bigram-animals](https://github.com/toy-gpt/train-200-bigram-animals)                 | Bigram     | [001 animals](https://raw.githubusercontent.com/toy-gpt/train-200-bigram-animals/refs/heads/main/corpus/001_animals.txt) (**structured**)                  | 1       |
+| [train-300-context-2-animals](https://github.com/toy-gpt/train-300-context-2-animals)           | Context-2  | [001 animals](https://raw.githubusercontent.com/toy-gpt/train-300-context-2-animals/refs/heads/main/corpus/001_animals.txt) (**structured**)               | 2       |
+| [train-400-context-3-animals](https://github.com/toy-gpt/train-400-context-3-animals)           | Context-3  | [001 animals](https://raw.githubusercontent.com/toy-gpt/train-400-context-3-animals/refs/heads/main/corpus/001_animals.txt) (**structured**)               | 3       |
+| [train-201-bigram-llm-glossary](https://github.com/toy-gpt/train-201-bigram-llm-glossary)       | Bigram     | [010 llm_glossary](https://raw.githubusercontent.com/toy-gpt/train-201-bigram-llm-glossary/refs/heads/main/corpus/010_llm_glossary.txt) (**domain**)       | 1       |
+| [train-301-context-2-llm-glossary](https://github.com/toy-gpt/train-301-context-2-llm-glossary) | Context-2  | [010 llm_glossary](https://raw.githubusercontent.com/toy-gpt/train-301-context-2-llm-glossary/refs/heads/main/corpus/010_llm_glossary.txt) (**domain**)    | 2       |
+| [train-401-context-3-llm-glossary](https://github.com/toy-gpt/train-401-context-3-llm-glossary) | Context-3  | [010 llm_glossary](https://raw.githubusercontent.com/toy-gpt/train-401-context-3-llm-glossary/refs/heads/main/corpus/010_llm_glossary.txt) (**domain**) ⚠️ | 3       |
+| [train-302-context-2-repo-tour](https://github.com/toy-gpt/train-302-context-2-repo-tour)       | Context-2  | [020 repo_tour](https://raw.githubusercontent.com/toy-gpt/train-302-context-2-repo-tour/refs/heads/main/corpus/020_repo_tour.txt) (**domain**)             | 2       |
+| [train-500-embeddings](https://github.com/toy-gpt/train-500-embeddings)                         | Embeddings | [030 analytics](https://raw.githubusercontent.com/toy-gpt/train-500-embeddings/refs/heads/main/corpus/030_analytics.txt) (**domain**)                      | 2       |
+| [train-600-attention](https://github.com/toy-gpt/train-600-attention)                           | Attention  | [030 analytics](https://raw.githubusercontent.com/toy-gpt/train-600-attention/refs/heads/main/corpus/030_analytics.txt) (**domain**) ℹ️                    | 2       |
+| [train-600-attention-3](https://github.com/toy-gpt/train-600-attention-3)                       | Attention  | [030 analytics](https://raw.githubusercontent.com/toy-gpt/train-600-attention-3/refs/heads/main/corpus/030_analytics.txt) (**domain**) ℹ️                  | 3       | -->
 
-⚠️ Too large to commit (428 MB of mostly zeros).
-ℹ️ Attention requires scale to produce meaningful position weighting.
+- ⚠️ Too large to commit (428 MB of mostly zeros).
+- ℹ️ Attention requires a larger corpus to produce meaningful position weighting.
 
 ## Grid View
 
