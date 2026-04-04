@@ -1,12 +1,13 @@
 """
 checks.py — toy-gpt org health scanner
 
-WHY: Scan all repos in the toy-gpt org and report on workflow status,
-     file presence, and migration state (mkdocs -> zensical).
+WHY: Scan all repos in the toy-gpt org and report on workflow status
+     and file presence.
 
 USAGE:
     uv run --env-file .env python src/toy-gpt-github/checks.py
     uv run --env-file .env python -m toy-gpt-github.checks
+    uv run --env-file .env python src/toy-gpt-github/checks.py --format=markdown > org-health.md
 
 REQUIRES:
     export GITHUB_TOKEN=<your-pat>   # needs repo + actions read scope
@@ -177,9 +178,6 @@ def analyse_repo(client: httpx.Client, repo: dict) -> RepoReport:
         ):
             report.issues.append(f"not a thin caller: {wf.name}")
 
-    if report.files.get("mkdocs") and not report.files.get("zensical"):
-        report.issues.append("not migrated to zensical")
-
     if name not in SKIP_MANIFEST and not report.files.get("manifest"):
         report.issues.append("SE_MANIFEST.toml missing")
 
@@ -199,6 +197,12 @@ STATUS_SYMBOL = {
     "missing": "[dim]—[/dim]",
     "unknown": "[yellow]?[/yellow]",
 }
+
+
+def md_cell(text: str) -> str:
+    text = text.replace("\n", "<br>")
+    text = text.replace("|", "\\|")
+    return text
 
 
 def render(reports: list[RepoReport]) -> None:
@@ -260,6 +264,83 @@ def render(reports: list[RepoReport]) -> None:
     console.print(f"\n[bold]{clean}/{total}[/bold] repos clean")
 
 
+def render_markdown(reports: list[RepoReport]) -> str:
+    headers = [
+        "Repo",
+        "ci",
+        "deploy",
+        "links",
+        "thin?",
+        "zen",
+        "mani",
+        "dbot",
+        "Issues",
+    ]
+
+    def sym(status: str) -> str:
+        return {
+            "pass": "yes",
+            "fail": "no",
+            "missing": "-",
+            "unknown": "?",
+        }.get(status, "?")
+
+    def md_cell(text: str) -> str:
+        text = text.replace("\n", "<br>")
+        text = text.replace("|", "\\|")
+        return text
+
+    lines = []
+    lines.append("# toy-gpt org health")
+    lines.append("")
+    lines.append("| " + " | ".join(headers) + " |")
+    lines.append("| " + " | ".join(["---"] * len(headers)) + " |")
+
+    for r in reports:
+        if r.archived:
+            lines.append(
+                f"| {md_cell(r.name + ' (archived)')} | - | - | - | - | - | - | - | - |"
+            )
+            continue
+
+        wf_map = {w.name: w for w in r.workflows}
+
+        def ws(name: str, wf_map=wf_map) -> str:
+            w = wf_map.get(name)
+            return sym(w.status) if w else "-"
+
+        non_missing = [w for w in r.workflows if w.status != "missing"]
+        thin = "-"
+        if non_missing:
+            thin = "yes" if all(w.is_thin_caller for w in non_missing) else "no"
+
+        def f(label: str, r=r) -> str:
+            return "yes" if r.files.get(label) else "no"
+
+        issues = "; ".join(r.issues) if r.issues else "ok"
+
+        row = [
+            md_cell(r.name),
+            md_cell(ws("ci-shared.yml")),
+            md_cell(ws("deploy-docs-shared.yml")),
+            md_cell(ws("links.yml")),
+            md_cell(thin),
+            md_cell(f("zensical")),
+            md_cell(f("manifest")),
+            md_cell(f("dependabot")),
+            md_cell(issues),
+        ]
+        lines.append("| " + " | ".join(row) + " |")
+
+    total = sum(1 for r in reports if not r.archived)
+    clean = sum(1 for r in reports if not r.archived and not r.issues)
+
+    lines.append("")
+    lines.append(f"**{clean}/{total} repos clean**")
+
+    return "\n".join(lines)
+
+
 # ============================================================
 # Main
 # ============================================================
@@ -271,18 +352,30 @@ def main() -> None:
         print("ERROR: GITHUB_TOKEN not set.", file=sys.stderr)
         sys.exit(1)
 
+    output_format = "console"
+    if "--format=markdown" in sys.argv:
+        output_format = "markdown"
+
+    verbose = output_format == "console"
+
     with make_client(token) as client:
-        print(f"Fetching repos for {ORG}...")
+        if verbose:
+            print(f"Fetching repos for {ORG}...")
         repos = get_repos(client, ORG)
         repos.sort(key=lambda r: r["name"])
-        print(f"Found {len(repos)} repos. Scanning...\n")
+        if verbose:
+            print(f"Found {len(repos)} repos. Scanning...\n")
 
         reports = []
         for repo in repos:
-            print(f"  {repo['name']}")
+            if verbose:
+                print(f"  {repo['name']}")
             reports.append(analyse_repo(client, repo))
 
-    render(reports)
+    if output_format == "markdown":
+        print(render_markdown(reports))
+    else:
+        render(reports)
 
 
 if __name__ == "__main__":
