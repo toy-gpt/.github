@@ -1,67 +1,91 @@
 # Toy GPT
 
-A family of small repositories that demonstrate how language models are trained and
-how model behavior changes with different choices for context window and training text.
+> Learn How Large Language Models (LLM) Work
 
-This organization is designed for illustration, experimentation, and structural understanding;
-the repositories are not suitable for production use.
-Several corpora are intentionally neutral, serving as negative controls to show
-when additional context provides little or no benefit.
+_The project is designed for illustration, experimentation, and structural understanding;
+and not for production use._
 
-## Introduction
+## Modern GPT Chat Agents
 
-Language models are built around a simple objective: 
-given some text, **predict the next word**. 
-This may seem small, but repeated many times, 
-it produces full sentences, paragraphs, and conversations. 
+Modern GPT Chat Agents are built on a simple objective:
+given some text, **predict the next word**.
 
-When predictions are accurate enough, the result 
-can resemble natural human language closely enough to support interaction. 
-What we recognize as a GPT-type chatbot is not a separate capability; 
-it's the result of making useful **next-word predictions** over and over, 
+Repeated many times, this produces full conversations.
+
+What we recognize as a GPT-type chatbot is simply
+the result of making useful **next-word predictions** over and over,
 using the context of text seen so far.
 
-To achieve this, a GPT model is exposed to large amounts of 
-natural language during training and 
-learns **patterns** regarding how words follow one another. 
+## How They Work
 
-When generating a response, it works step by step, 
-using the words so far (its context window) to choose the next one. 
-**At each step**, it makes a locally **best guess** based on what it has learned.
-This process does not include planning a full sentence in advance.
-The response **emerges one word at a time**. 
+During training, an LLM is exposed to large amounts of human language
+and learns **patterns** in how words follow one another.
 
-These Toy GPT examples illustrate how changing 
-the **context window** (e.g., 0, 1, 2, or 3 prior words) and 
-the **training text** affects next-token predictions.
-Success determines how closely the generated text aligns with natural language.
+When generating a response, the model works step by step,
+using the words so far (its context window) to choose the next one.
 
-It's important to understand where most of the computational effort occurs. 
-The time and energy required when a trained model is **used in conversation**
-is relatively modest compared to the time and energy required to **train** it.
-A pre-trained model is created once and reused many times. 
+**At each step**, it makes a **best guess** based on what it has learned.
 
-Training involves processing massive amounts of human-written text and 
-repeatedly adjusting the model to improve its predictions. 
-For large GPT systems, it can take days or weeks of 
-continuous computation across many machines. 
+It doesn't plan a sentence in advance;
+the result **emerges one word at a time**.
 
-The pre-trained models in Toy GPT reflect 
-the same processes at tiny scale, 
-making it possible to observe how training choices shape model behavior.
+## Toy GPT Exploration (2D Matrix)
 
-Modern GPT-style models are based on the transformer architecture introduced in
-[**"Attention Is All You Need"**](https://arxiv.org/abs/1706.03762)<sup>1</sup>. 
-These models use **embeddings** and **attention** mechanisms
-to represent tokens and weigh which prior words are most relevant for prediction.
+These examples illustrate how changing:
 
-Attention is included in this project for completeness, 
-but it's difficult to demonstrate its full effect on very small corpora. 
-In practice, attention-based models benefit from larger and more varied training text. 
+1. the **context window** (e.g., 0, 1, 2, or 3 prior words) and
+2. the **training text** affects next-token predictions
 
-<sup>1</sup> Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N
-Gomez, Łukasz Kaiser, and Illia Polosukhin. Attention is all you need. In Advances in
-Neural Information Processing Systems, volume 30, pages 5998–6008, 2017.
+The results determine how well the conversation goes.
+
+We include a **neutral** cat-dog corpora to illustrate cases where
+additional context (tracking prior words) intentionally provides no benefit.
+
+## LLM Training Costs
+
+Most computational effort occurs during training, not use.
+Running a trained model in conversation is relatively inexpensive;
+training it requires processing large amounts of human-written text
+and repeatedly adjusting the model to improve predictions.
+Large systems may take days or weeks of computation across many machines.
+The pre-trained models in Toy GPT reflect the same process at a much smaller scale.
+
+## Combinatorial Explosion
+
+It takes space to track each word in context
+(even if the context is only 2 or 3 words prior).
+The context-3 model stores one weight row per **unique 3-token context**,
+so the weight matrix grows as vocab³:
+
+| Corpus                                                   | Vocab size  | Model                                                                                                              | Weight matrix rows | Approx. size |
+| -------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------ | ------------------ | ------------ | ----------- | ----- |
+| [cat/dog]((https://github.com/toy-gpt/train-100-unigram) | Unigram     | [000 cat_dog](https://raw.githubusercontent.com/toy-gpt/train-100-unigram/refs/heads/main/corpus/000_cat_dog.txt)) | ~20 tokens         | context-3    | 20³ = 8,000 | ~3 MB |
+| llm_glossary                                             | ~119 tokens | context-2                                                                                                          | 119² = 14,161      | ~10 MB       |
+| llm_glossary                                             | ~119 tokens | context-3                                                                                                          | 119³ = 1,685,159   | **~428 MB**  |
+
+Our simple Context-3 model (without embeddings) grew to **428 MB**,
+consisting mostly of zeros (because relatively few combinations appear in context).
+
+This rapid growth makes direct counting approaches impractical
+and motivates more compact representations for capturing similarities across words.
+
+## GPT: The Transformer Breakthrough
+
+Modern GPT-style models use the transformer architecture from
+[**"Attention Is All You Need"**](https://arxiv.org/abs/1706.03762)<sup>1</sup>.
+They use:
+
+- **embeddings** (numeric representations of words) and
+- **attention** (selecting which prior words matter most)
+
+to represent tokens and weigh
+**which prior words are most relevant for prediction**.
+
+These mechanisms produce much more **compact** output.
+Attention is included in Toy GPT for completeness,
+but its full effect is hard to demonstrate on such tiny corpora.
+
+<sup>1</sup> Vaswani et al. (2017), _Attention Is All You Need_.
 
 ## App
 
@@ -79,48 +103,48 @@ Two things vary independently: the model and the corpus.
 
 Select a model (how many previous tokens are used to predict the next one):
 
-| Code | Model | Context window |
-|---|---|---|
-| 100 | Unigram | 0 tokens; predicts from overall frequency only |
-| 200 / 201 | Bigram | 1 token; predicts from the immediately preceding token |
-| 300 / 301 / 302 | Context-2 | 2 tokens; predicts from the previous two tokens |
-| 400 | Context-3 | 3 tokens; predicts from the previous three tokens |
-| 500 | Embeddings | learns vector representations of tokens |
-| 600 | Attention | dynamically weights which prior tokens matter most |
+| Code            | Model      | Context window                                         |
+| --------------- | ---------- | ------------------------------------------------------ |
+| 100             | Unigram    | 0 tokens; predicts from overall frequency only         |
+| 200 / 201       | Bigram     | 1 token; predicts from the immediately preceding token |
+| 300 / 301 / 302 | Context-2  | 2 tokens; predicts from the previous two tokens        |
+| 400             | Context-3  | 3 tokens; predicts from the previous three tokens      |
+| 500             | Embeddings | learns vector representations of tokens                |
+| 600             | Attention  | dynamically weights which prior tokens matter most     |
 
 ### Chose One Corpus Per Training Repository
 
 Select a corpus (the text the model is trained on):
 
-| ID | File | Type | Signal |
-|---|---|---|---|
-| 000 | cat_dog.txt | Neutral | Low; adjacency carries little predictive value |
-| 001 | animals.txt | Structured | Higher; natural language patterns |
-| 010 | llm_glossary.txt | Domain | Technical NLP definitions |
-| 020 | repo_tour.txt | Domain | Repository file and folder descriptions |
-| 030 | analytics.txt | Domain | Technical micro-lessons |
+| ID  | File             | Type       | Signal                                         |
+| --- | ---------------- | ---------- | ---------------------------------------------- |
+| 000 | cat_dog.txt      | Neutral    | Low; adjacency carries little predictive value |
+| 001 | animals.txt      | Structured | Higher; natural language patterns              |
+| 010 | llm_glossary.txt | Domain     | Technical NLP definitions                      |
+| 020 | repo_tour.txt    | Domain     | Repository file and folder descriptions        |
+| 030 | analytics.txt    | Domain     | Technical micro-lessons                        |
 
 ### Training Repository Model-Corpus Matrix
 
-| Repository | Model | Corpus | Context |
-|---|---|---|---|
-| [train-100-unigram](https://github.com/toy-gpt/train-100-unigram) | Unigram | 000 cat_dog (**neutral**) | 0 |
-| [train-200-bigram](https://github.com/toy-gpt/train-200-bigram) | Bigram | 000 cat_dog (**neutral**) | 1 |
-| [train-300-context-2](https://github.com/toy-gpt/train-300-context-2) | Context-2 | 000 cat_dog (**neutral**) | 2 |
-| [train-400-context-3](https://github.com/toy-gpt/train-400-context-3) | Context-3 | 000 cat_dog (**neutral**) | 3 |
-| [train-100-unigram-animals](https://github.com/toy-gpt/train-100-unigram-animals) | Unigram | 001 animals (**structured**) | 0 |
-| [train-200-bigram-animals](https://github.com/toy-gpt/train-200-bigram-animals) | Bigram | 001 animals (**structured**) | 1 |
-| [train-300-context-2-animals](https://github.com/toy-gpt/train-300-context-2-animals) | Context-2 | 001 animals (**structured**) | 2 |
-| [train-400-context-3-animals](https://github.com/toy-gpt/train-400-context-3-animals) | Context-3 | 001 animals (**structured**) | 3 |
-| [train-201-bigram-llm-glossary](https://github.com/toy-gpt/train-201-bigram-llm-glossary) | Bigram | 010 llm_glossary (**domain**) | 1 |
-| [train-301-context-2-llm-glossary](https://github.com/toy-gpt/train-301-context-2-llm-glossary) | Context-2 | 010 llm_glossary (**domain**) | 2 |
-| [train-401-context-3-llm-glossary](https://github.com/toy-gpt/train-401-context-3-llm-glossary) | Context-3 | 010 llm_glossary (**domain**) ⚠️ | 3 |
-| [train-302-context-2-repo-tour](https://github.com/toy-gpt/train-302-context-2-repo-tour) | Context-2 | 020 repo_tour (**domain**) | 2 |
-| [train-500-embeddings](https://github.com/toy-gpt/train-500-embeddings) | Embeddings | 030 analytics (**domain**) | 2 |
-| [train-600-attention](https://github.com/toy-gpt/train-600-attention) | Attention | 030 analytics (**domain**) ℹ️ | 2 |
-| [train-600-attention-3](https://github.com/toy-gpt/train-600-attention-3) | Attention | 030 analytics (**domain**) ℹ️ | 3 |
+| Repository                                                                                      | Model      | Corpus                                                                                                                                       | Context |
+| ----------------------------------------------------------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| [train-100-unigram](https://github.com/toy-gpt/train-100-unigram)                               | Unigram    | [000 cat_dog](https://raw.githubusercontent.com/toy-gpt/train-100-unigram/refs/heads/main/corpus/000_cat_dog.txt) (**neutral**)              | 0       |
+| [train-200-bigram](https://github.com/toy-gpt/train-200-bigram)                                 | Bigram     | [000 cat_dog](https://raw.githubusercontent.com/toy-gpt/train-200-bigram/refs/heads/main/corpus/000_cat_dog.txt) (**neutral**)               | 1       |
+| [train-300-context-2](https://github.com/toy-gpt/train-300-context-2)                           | Context-2  | [000 cat_dog](https://raw.githubusercontent.com/toy-gpt/train-300-context-2/refs/heads/main/corpus/000_cat_dog.txt) (**neutral**)            | 2       |
+| [train-400-context-3](https://github.com/toy-gpt/train-400-context-3)                           | Context-3  | [000 cat_dog](https://raw.githubusercontent.com/toy-gpt/train-400-context-3/refs/heads/main/corpus/000_cat_dog.txt) (**neutral**)            | 3       |
+| [train-100-unigram-animals](https://github.com/toy-gpt/train-100-unigram-animals)               | Unigram    | [001 animals](https://raw.githubusercontent.com/toy-gpt/train-100-unigram-animals/refs/heads/main/corpus/001_animals.txt) (**structured**)   | 0       |
+| [train-200-bigram-animals](https://github.com/toy-gpt/train-200-bigram-animals)                 | Bigram     | [001 animals](https://raw.githubusercontent.com/toy-gpt/train-200-bigram-animals/refs/heads/main/corpus/001_animals.txt) (**structured**)    | 1       |
+| [train-300-context-2-animals](https://github.com/toy-gpt/train-300-context-2-animals)           | Context-2  | [001 animals](https://raw.githubusercontent.com/toy-gpt/train-300-context-2-animals/refs/heads/main/corpus/001_animals.txt) (**structured**) | 2       |
+| [train-400-context-3-animals](https://github.com/toy-gpt/train-400-context-3-animals)           | Context-3  | [001 animals](https://raw.githubusercontent.com/toy-gpt/train-400-context-3-animals/refs/heads/main/corpus/001_animals.txt) (**structured**) | 3       |
+| [train-201-bigram-llm-glossary](https://github.com/toy-gpt/train-201-bigram-llm-glossary)       | Bigram     | 010 llm_glossary (**domain**)                                                                                                                | 1       |
+| [train-301-context-2-llm-glossary](https://github.com/toy-gpt/train-301-context-2-llm-glossary) | Context-2  | 010 llm_glossary (**domain**)                                                                                                                | 2       |
+| [train-401-context-3-llm-glossary](https://github.com/toy-gpt/train-401-context-3-llm-glossary) | Context-3  | 010 llm_glossary (**domain**) ⚠️                                                                                                             | 3       |
+| [train-302-context-2-repo-tour](https://github.com/toy-gpt/train-302-context-2-repo-tour)       | Context-2  | 020 repo_tour (**domain**)                                                                                                                   | 2       |
+| [train-500-embeddings](https://github.com/toy-gpt/train-500-embeddings)                         | Embeddings | 030 analytics (**domain**)                                                                                                                   | 2       |
+| [train-600-attention](https://github.com/toy-gpt/train-600-attention)                           | Attention  | 030 analytics (**domain**) ℹ️                                                                                                                | 2       |
+| [train-600-attention-3](https://github.com/toy-gpt/train-600-attention-3)                       | Attention  | 030 analytics (**domain**) ℹ️                                                                                                                | 3       |
 
-⚠️ Too large to commit (428 MB of mostly zeros).  
+⚠️ Too large to commit (428 MB of mostly zeros).
 ℹ️ Attention requires scale to produce meaningful position weighting.
 
 ## Grid View
