@@ -5,7 +5,8 @@ WHY: Scan all repos in the toy-gpt org and report on workflow status,
      file presence, and migration state (mkdocs -> zensical).
 
 USAGE:
-    uv run python checks.py
+    uv run --env-file .env python src/toy-gpt-github/checks.py
+    uv run --env-file .env python -m toy-gpt-github.checks
 
 REQUIRES:
     export GITHUB_TOKEN=<your-pat>   # needs repo + actions read scope
@@ -28,12 +29,11 @@ ORG = "toy-gpt"
 BASE = "https://api.github.com"
 
 # Workflow filenames to check (as they appear in .github/workflows/)
-WORKFLOWS_TO_CHECK = ["ci-org.yml", "deploy-docs-shared.yml", "links.yml"]
+WORKFLOWS_TO_CHECK = ["ci-shared.yml", "deploy-docs-shared.yml", "links.yml"]
 
 # Files whose presence indicates repo health / migration state
 FILES_TO_CHECK = {
     "zensical.toml": "zensical",
-    "mkdocs.yml": "mkdocs",
     "SE_MANIFEST.toml": "manifest",
     ".github/dependabot.yml": "dependabot",
     "py.typed": "py.typed",
@@ -193,7 +193,7 @@ STATUS_SYMBOL = {
 def render(reports: list[RepoReport]) -> None:
     console = Console()
 
-    table = Table(title=f"toy-gpt org health", show_lines=True)
+    table = Table(title="toy-gpt org health", show_lines=True)
     table.add_column("Repo", style="bold")
     table.add_column("ci", justify="center")
     table.add_column("deploy", justify="center")
@@ -211,25 +211,25 @@ def render(reports: list[RepoReport]) -> None:
 
         wf_map = {w.name: w for w in r.workflows}
 
-        def ws(name: str) -> str:
+        def ws(name: str, wf_map=wf_map) -> str:
             w = wf_map.get(name)
             return STATUS_SYMBOL.get(w.status, "?") if w else "—"
 
-        def thin_all() -> str:
+        def thin_all(r=r) -> str:
             non_missing = [w for w in r.workflows if w.status != "missing"]
             if not non_missing:
                 return "—"
             return "[green]✓[/green]" if all(w.is_thin_caller for w in non_missing) else "[red]✗[/red]"
 
-        def f(label: str) -> str:
+        def f(label: str, r=r) -> str:
             return "[green]✓[/green]" if r.files.get(label) else "[red]✗[/red]"
 
         issues = "\n".join(r.issues) if r.issues else "[green]ok[/green]"
 
         table.add_row(
             r.name,
-            ws("ci-org.yml"),
-            ws("deploy-zensical.yml"),
+            ws("ci-shared.yml"),
+            ws("deploy-docs-shared.yml"),
             ws("links.yml"),
             thin_all(),
             f("zensical"),
