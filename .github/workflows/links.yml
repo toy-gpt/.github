@@ -10,6 +10,7 @@
 name: Check Links
 
 on:
+  workflow_call: # WHY: Allow this workflow to be called by other workflows if needed
   workflow_dispatch: # WHY: Manual trigger - always available
   pull_request: # WHY: Validates PR links before merge
   schedule:
