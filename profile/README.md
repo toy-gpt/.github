@@ -59,7 +59,7 @@ so the weight matrix grows as vocab³:
 
 | Corpus                                                   | Vocab size  | Model                                                                                                              | Weight matrix rows | Approx. size |
 | -------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------ | ------------------ | ------------ | ----------- | ----- |
-| [cat/dog]((https://github.com/toy-gpt/train-100-unigram) | Unigram     | [000 cat_dog](https://raw.githubusercontent.com/toy-gpt/train-100-unigram/refs/heads/main/corpus/000_cat_dog.txt)) | ~20 tokens         | context-3    | 20³ = 8,000 | ~3 MB |
+| [cat/dog](https://github.com/toy-gpt/train-100-unigram) | Unigram     | [000 cat_dog](https://raw.githubusercontent.com/toy-gpt/train-100-unigram/refs/heads/main/corpus/000_cat_dog.txt) | ~20 tokens         | context-3    | 20³ = 8,000 | ~3 MB |
 | llm_glossary                                             | ~119 tokens | context-2                                                                                                          | 119² = 14,161      | ~10 MB       |
 | llm_glossary                                             | ~119 tokens | context-3                                                                                                          | 119³ = 1,685,159   | **~428 MB**  |
 
