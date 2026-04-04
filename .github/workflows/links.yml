@@ -18,7 +18,7 @@ on:
 concurrency:
   # WHY: Prevent multiple simultaneous link checks on same ref.
   # OBS: github.ref may be undefined for workflow_call; concurrency group falls back gracefully.
-  group: link-check-${{ github.ref }}
+  group: link-check-${{ github.ref || github.run_id }}
   cancel-in-progress: true
 
 permissions:
@@ -26,7 +26,8 @@ permissions:
   issues: write   # WHY: Needed to create issue on scheduled failures.
 
 env:
-  REPORT_FAILURES: "true"  # WHY: Enable scheduled issues for link failures.
+  REPORT_FAILURES: "true"         # WHY: Enable scheduled issues for link failures.
+  REPORT_PATH: "./lychee-report.md"  # WHY: Single source of truth for report location.
 
 jobs:
   lychee:
@@ -38,27 +39,7 @@ jobs:
       - name: 1) Checkout repository code
         uses: actions/checkout@v6
 
-      - name: 2) Initialize report file (placeholder)
-        # WHY: Ensure the job summary always has a report, even if Lychee crashes early.
-        run: |
-          cat > ./lychee-report.md << 'EOF'
-          # Summary
-
-          | Status        | Count |
-          |---------------|-------|
-          | 🔍 Total      | 0     |
-          | ✅ Successful | 0     |
-          | ⏳ Timeouts   | 0     |
-          | 🔀 Redirected | 0     |
-          | 👻 Excluded   | 0     |
-          | ❓ Unknown    | 0     |
-          | 🚫 Errors     | 0     |
-          | ⛔ Unsupported| 0     |
-
-          Report not generated yet (workflow still running).
-          EOF
-
-      - name: 3) Check links with Lychee
+      - name: 2) Check links with Lychee
         id: lychee
         continue-on-error: true
         uses: lycheeverse/lychee-action@v2.8.0
@@ -69,6 +50,8 @@ jobs:
           output: ./lychee-report.md
           # OBS: Force markdown so the report is readable in summaries.
           format: markdown
+          # WHY: Publish Lychee's markdown report to the GitHub Actions Summary tab.
+          jobSummary: true
           args: >
             --config lychee.toml
             --user-agent "${{ github.repository }}/lychee"
@@ -84,19 +67,37 @@ jobs:
           # WHY: Allows Lychee to authenticate to GitHub when checking links.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 4) Add results to job summary
+      - name: 3) Add results to job summary
         if: always()
         run: |
-          echo "## Link Check Report" >> "$GITHUB_STEP_SUMMARY"
-          if [ -f ./lychee-report.md ]; then
-            cat ./lychee-report.md >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "No report generated." >> "$GITHUB_STEP_SUMMARY"
-          fi
+          {
+            echo "## Link Check Report"
+            echo ""
 
-          # WHY: Provide a fix-it hint when the Dependabot security page is flagged.
-          if [ -f ./lychee-report.md ] && grep -q "/security/dependabot" ./lychee-report.md; then
-            cat >> "$GITHUB_STEP_SUMMARY" << 'EOF'
+            if [ -s "${REPORT_PATH}" ]; then
+              cat "${REPORT_PATH}"
+            else
+              cat << 'EOF'
+          # Summary
+
+          | Status        | Count |
+          |---------------|-------|
+          | 🔍 Total      | 0     |
+          | ✅ Successful | 0     |
+          | ⏳ Timeouts   | 0     |
+          | 🔀 Redirected | 0     |
+          | 👻 Excluded   | 0     |
+          | ❓ Unknown    | 0     |
+          | 🚫 Errors     | 0     |
+          | ⛔ Unsupported| 0     |
+
+          No report was generated. The workflow is treating this as a failure so the status does not go green silently.
+          EOF
+            fi
+
+            # WHY: Provide a fix-it hint when the Dependabot security page is flagged.
+            if [ -f "${REPORT_PATH}" ] && grep -q "/security/dependabot" "${REPORT_PATH}"; then
+              cat << 'EOF'
 
           ## Fix for Dependabot security link (GitHub settings)
           If the link checker reports a 404 for the Dependabot security page, it is often because Advanced Security options are not enabled.
@@ -110,24 +111,47 @@ jobs:
 
           After enabling, the Dependabot security page link should resolve.
           EOF
-          fi
+            fi
 
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "Lychee exit code: ${{ steps.lychee.outputs.exit_code }}" >> "$GITHUB_STEP_SUMMARY"
+            echo ""
+            echo "## Run Metadata"
+            echo ""
+            echo "- Event: \`${{ github.event_name }}\`"
+            echo "- Ref: \`${{ github.ref }}\`"
+            echo "- Lychee exit code: \`${{ steps.lychee.outputs.exit_code }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: 5) Create issue for scheduled failures
+      - name: 4) Create issue for scheduled failures
         # WHY: Track broken links found during scheduled checks.
         # OBS: Only creates issue if none already open with 'broken-links' label.
         if: steps.lychee.outputs.exit_code != 0 && github.event_name == 'schedule' && env.REPORT_FAILURES == 'true'
         uses: actions/github-script@v8
         with:
           script: |
+            const fs = require("fs");
+
             const owner = context.repo.owner;
             const repo = context.repo.repo;
             const date = new Date().toISOString().split("T")[0];
             const title = `Link Check Failed - ${date}`;
             const runUrl = `${context.payload.repository.html_url}/actions/runs/${context.runId}`;
-            const body = `Monthly link check found broken links.\n\nWorkflow logs: ${runUrl}`;
+
+            let report = "Lychee report file was not found.";
+            try {
+              report = fs.readFileSync("./lychee-report.md", "utf8");
+            } catch (error) {
+              // Keep fallback text above.
+            }
+
+            const body = [
+              "Monthly link check found broken links.",
+              "",
+              `Workflow run: ${runUrl}`,
+              "",
+              "Report:",
+              "",
+              report,
+            ].join("\n");
 
             const existing = await github.rest.issues.listForRepo({
               owner,
@@ -147,7 +171,7 @@ jobs:
               });
             }
 
-      - name: 6) Gate fail job if broken links found
+      - name: 5) Gate fail job if broken links found
         # WHY: Ensure the overall status is not green when broken links are detected.
         if: always()
         run: |
