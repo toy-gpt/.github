@@ -1,13 +1,13 @@
 """
-checks.py — toy-gpt org health scanner
+src/toy_gpt_github/checks.py - toy-gpt org health scanner
 
 WHY: Scan all repos in the toy-gpt org and report on workflow status
      and file presence.
 
 USAGE:
-    uv run --env-file .env python src/toy-gpt-github/checks.py
-    uv run --env-file .env python -m toy-gpt-github.checks
-    uv run --env-file .env python src/toy-gpt-github/checks.py --write-markdown org-health.md
+    uv run --env-file .env python src/toy_gpt_github/checks.py
+    uv run --env-file .env python -m toy_gpt_github.checks
+    uv run --env-file .env python src/toy_gpt_github/checks.py --write-markdown org-health.md
 
 REQUIRES:
     export GITHUB_TOKEN=<your-pat>   # needs repo + actions read scope

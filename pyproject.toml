@@ -100,30 +100,26 @@ force-sort-within-sections = false # WHY: Avoid unnecessary churn by only sortin
 # REQ: Google style is the default policy for this repository.
 convention = "google" # ALT: "numpy" (choose one convention project-wide)
 
-# === BUILD SYSTEM ===
+# === BUILD SYSTEM (HATCHLING) ===
 #
 # REQ.PROJECT:
-#   This project MUST define a build system and package discovery rules.
+#   This project MUST define a build system so that local Python modules
+#   can be discovered and imported reliably.
 #
 # WHY:
-#   A build backend and src/ package discovery make local imports,
-#   editable installs, tests, editors, and CI behave consistently.
+#   Although this project is not published to PyPI, tools such as editors,
+#   test runners, and CI need a consistent way to locate importable code.
 #
 # REQ.STRUCTURE:
 #   All importable Python code MUST live under src/.
 #
 # WHY:
-#   A src/ layout prevents accidental imports from the repository root
-#   and improves consistency across tools.
+#   A src/ layout prevents accidental imports from the repository root and
+#   ensures consistent behavior across IDEs, tests, and command-line runs.
 [build-system]
 # REQ.BUILD: A build backend MUST be declared to enable package discovery.
-build-backend = "setuptools.build_meta"
-requires = ["setuptools"]
+build-backend = "hatchling.build"
+requires = ["hatchling"]
 
-[tool.setuptools]
-# REQ.PACKAGES: Package discovery MUST be rooted at src/.
-package-dir = { "" = "src" }
-
-[tool.setuptools.packages.find]
-# WHY: Explicitly define package discovery location.
-where = ["src"]
+[tool.hatch.build.targets.wheel]
+packages = ["src/toy_gpt_github"]

@@ -65,8 +65,8 @@ git add -A
 uvx pre-commit run --all-files
 
 # just console / console and md file
-uv run --env-file .env python src/toy-gpt-github/checks.py
-uv run --env-file .env python src/toy-gpt-github/checks.py --write-markdown org-health.md
+uv run --env-file .env python src/toy_gpt_github/checks.py
+uv run --env-file .env python src/toy_gpt_github/checks.py --write-markdown org-health.md
 
 uv run ruff format .
 uv run ruff check . --fix
