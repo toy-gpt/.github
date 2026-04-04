@@ -26,8 +26,8 @@ permissions:
   issues: write   # WHY: Needed to create issue on scheduled failures.
 
 env:
-  REPORT_FAILURES: "true"         # WHY: Enable scheduled issues for link failures.
-  REPORT_PATH: "./lychee-report.md"  # WHY: Single source of truth for report location.
+  REPORT_FAILURES: "true"      # WHY: Enable scheduled issues for link failures.
+  REPORT_PATH: "./lychee/out.md"  # WHY: Use the action's conventional markdown report path.
 
 jobs:
   lychee:
@@ -46,12 +46,12 @@ jobs:
         with:
           # WHY: Do not hard-fail inside the action; decide final status in the gate step.
           fail: false
-          # WHY: Capture output for use in job summary and scheduled issue.
-          output: ./lychee-report.md
-          # OBS: Force markdown so the report is readable in summaries.
+          # WHY: Write the markdown report to a predictable file we can publish ourselves.
+          output: ./lychee/out.md
+          # WHY: Force markdown so the report includes the summary table.
           format: markdown
-          # WHY: Publish Lychee's markdown report to the GitHub Actions Summary tab.
-          jobSummary: true
+          # WHY: Disable the action's own summary so there is exactly one summary path.
+          jobSummary: false
           args: >
             --config lychee.toml
             --user-agent "${{ github.repository }}/lychee"
@@ -70,6 +70,8 @@ jobs:
       - name: 3) Add results to job summary
         if: always()
         run: |
+          mkdir -p "$(dirname "${REPORT_PATH}")"
+
           {
             echo "## Link Check Report"
             echo ""
@@ -91,7 +93,9 @@ jobs:
           | 🚫 Errors     | 0     |
           | ⛔ Unsupported| 0     |
 
-          No report was generated. The workflow is treating this as a failure so the status does not go green silently.
+          No report file was generated at the expected path.
+
+          This usually means the Lychee action did not write the markdown report where this workflow expected it.
           EOF
             fi
 
@@ -119,6 +123,7 @@ jobs:
             echo "- Event: \`${{ github.event_name }}\`"
             echo "- Ref: \`${{ github.ref }}\`"
             echo "- Lychee exit code: \`${{ steps.lychee.outputs.exit_code }}\`"
+            echo "- Report path: \`${REPORT_PATH}\`"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: 4) Create issue for scheduled failures
@@ -138,7 +143,7 @@ jobs:
 
             let report = "Lychee report file was not found.";
             try {
-              report = fs.readFileSync("./lychee-report.md", "utf8");
+              report = fs.readFileSync("./lychee/out.md", "utf8");
             } catch (error) {
               // Keep fallback text above.
             }
