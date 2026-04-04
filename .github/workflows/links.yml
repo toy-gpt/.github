@@ -24,7 +24,6 @@ concurrency:
 permissions:
   contents: read # WHY: Needed to checkout code.
   issues: write # WHY: Needed to create issue on scheduled failures.
-  pull-requests: write # WHY: Needed to comment on PR if links broken.
 
 env:
   PYTHONUNBUFFERED: "1" # WHY: Real-time logging.
