@@ -1,12 +1,71 @@
 # Toy GPT
 
 A family of small repositories that demonstrate how language models are trained and
-how model behavior changes with architecture and data.
+how model behavior changes with different choices for context window and training text.
 
 This organization is designed for illustration, experimentation, and structural understanding;
 the repositories are not suitable for production use.
 Several corpora are intentionally neutral, serving as negative controls to show
 when additional context provides little or no benefit.
+
+## Introduction
+
+Language models are built around a simple objective: 
+given some text, **predict the next word**. 
+This may seem small, but repeated many times, 
+it produces full sentences, paragraphs, and conversations. 
+
+When predictions are accurate enough, the result 
+can resemble natural human language closely enough to support interaction. 
+What we recognize as a GPT-type chatbot is not a separate capability; 
+it's the result of making useful **next-word predictions** over and over, 
+using the context of text seen so far.
+
+To achieve this, a GPT model is exposed to large amounts of 
+natural language during training and 
+learns **patterns** regarding how words follow one another. 
+
+When generating a response, it works step by step, 
+using the words so far (its context window) to choose the next one. 
+**At each step**, it makes a locally **best guess** based on what it has learned.
+This process does not include planning a full sentence in advance.
+The response **emerges one word at a time**. 
+
+These Toy GPT examples illustrate how changing 
+the **context window** (e.g., 0, 1, 2, or 3 prior words) and 
+the **training text** affects next-token predictions.
+Success determines how closely the generated text aligns with natural language.
+
+It's important to understand where most of the computational effort occurs. 
+The time and energy required when a trained model is **used in conversation**
+is relatively modest compared to the time and energy required to **train** it.
+A pre-trained model is created once and reused many times. 
+
+Training involves processing massive amounts of human-written text and 
+repeatedly adjusting the model to improve its predictions. 
+For large GPT systems, it can take days or weeks of 
+continuous computation across many machines. 
+
+The pre-trained models in Toy GPT reflect 
+the same processes at tiny scale, 
+making it possible to observe how training choices shape model behavior.
+
+Modern GPT-style models are based on the transformer architecture introduced in
+[**"Attention Is All You Need"**](https://arxiv.org/abs/1706.03762)<sup>1</sup>. 
+These models use **embeddings** and **attention** mechanisms
+to represent tokens and weigh which prior words are most relevant for prediction.
+
+Attention is included in this project for completeness, 
+but it's difficult to demonstrate its full effect on very small corpora. 
+In practice, attention-based models benefit from larger and more varied training text. 
+
+<sup>1</sup> Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N
+Gomez, Łukasz Kaiser, and Illia Polosukhin. Attention is all you need. In Advances in
+Neural Information Processing Systems, volume 30, pages 5998–6008, 2017.
+
+## App
+
+Interactive visualization of next-word (token) prediction in GPT-style language models.
 
 - [App](https://toy-gpt.github.io/toy-gpt-chat/) -interactive visualization of next-word (token) prediction in GPT-style language models.
 - [App Repo](https://github.com/toy-gpt/toy-gpt-chat)
