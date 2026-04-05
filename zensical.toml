@@ -9,9 +9,9 @@
 # ------------------------------------------------------------
 [project]
 site_name = "Toy GPT"
-site_url = "https://denisecase.github.io/.github/"
-repo_url = "https://github.com/denisecase/.github"
-repo_name = "denisecase/.github"
+site_url = "https://toy-gpt.github.io/.github/"
+repo_url = "https://github.com/toy-gpt/.github"
+repo_name = "toy-gpt/.github"
 site_description = "Project documentation"
 docs_dir = "docs" # source directory for documentation markdown files
 site_dir = "site" # output directory for generated site (ignored by Git; not in repo)
@@ -20,7 +20,7 @@ edit_uri = "edit/main/docs/" # "Edit this page" links (GitHub)
 [project.extra]
 # WHY: Social links provide easy access to project repositories and profiles.
 social = [
-    {icon = "fontawesome/brands/github", link = "https://github.com/denisecase/.github" },
+    {icon = "fontawesome/brands/github", link = "https://github.com/toy-gpt/.github" },
 ]
 
 # ------------------------------------------------------------
