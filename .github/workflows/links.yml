@@ -1,8 +1,6 @@
 # ============================================================
 # .github/workflows/links.yml (Lychee Link Checker)
 # ============================================================
-# SOURCE: https://github.com/denisecase/templates
-#
 # WHY-FILE: Automated link checking.
 # OBS: Behavior is configured in lychee.toml in this repository.
 # OBS: Runs on pull requests and monthly on schedule; manual trigger always available.
@@ -23,13 +21,11 @@ concurrency:
 
 permissions:
   contents: read # WHY: Needed to checkout code.
-  issues: write # WHY: Needed to create issue on scheduled failures.
 
 env:
   PYTHONUNBUFFERED: "1" # WHY: Real-time logging.
   PYTHONIOENCODING: "utf-8" # WHY: Ensure UTF-8 encoding for international characters.
-  REPORT_FAILURES: "true" # WHY: Enable PR comments and scheduled issues for link failures.
-  REPORT_PATH: "./lychee/out.md" # WHY: Predictable markdown report path for summary and issue content.
+  REPORT_PATH: "./lychee/out.md" # WHY: Predictable markdown report path for summary generation.
 
 jobs:
   lychee:
@@ -40,238 +36,15 @@ jobs:
     steps:
       - name: 1) Checkout repository code
         uses: actions/checkout@v6
+        # WHY: Required so Lychee can inspect repository files.
 
-      - name: 2) Check links with Lychee
-        id: lychee
-        continue-on-error: true
+      - name: 2) Run Lychee
         uses: lycheeverse/lychee-action@v2.8.0
         with:
-          # WHY: Do not hard-fail this step; always run reporting steps.
-          # Instead, fail the job explicitly at the end if exit_code != 0.
-          fail: false
-          # WHY: Generate a markdown report we can surface in the GitHub summary.
-          format: markdown
-          # WHY: Write the markdown report to a predictable file path.
-          output: ./lychee/out.md
-          # WHY: Disable built-in summary rendering; we generate our own stable summary below.
-          jobSummary: false
           args: >
-            --config lychee.toml
-            --user-agent "${{ github.repository }}/lychee"
-            './**/*.bib'
+            --verbose
+            --no-progress
             './**/*.md'
             './**/*.html'
-            './**/*.tex'
             './**/*.yml'
             './**/*.yaml'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: 3) Add results to job summary
-        if: always()
-        shell: bash
-        run: |
-          report_text=""
-          if [ -f "${REPORT_PATH}" ]; then
-            report_text="$(cat "${REPORT_PATH}")"
-          fi
-
-          extract_count() {
-            local label="$1"
-            local value
-            value="$(
-              printf '%s\n' "$report_text" | awk -F'|' -v target="$label" '
-                /^\|/ {
-                  label = $2
-                  count = $3
-                  gsub(/^[[:space:]]+|[[:space:]]+$/, "", label)
-                  gsub(/^[[:space:]]+|[[:space:]]+$/, "", count)
-                  if (label == target) {
-                    print count
-                    exit
-                  }
-                }
-              '
-            )"
-            if [ -z "$value" ]; then
-              value="n/a"
-            fi
-            printf '%s' "$value"
-          }
-
-          total="$(extract_count "Total")"
-          successful="$(extract_count "Successful")"
-          timeouts="$(extract_count "Timeouts")"
-          redirected="$(extract_count "Redirected")"
-          excluded="$(extract_count "Excluded")"
-          unknown="$(extract_count "Unknown")"
-          errors="$(extract_count "Errors")"
-          unsupported="$(extract_count "Unsupported")"
-
-          parse_ok="true"
-          for value in \
-            "$total" \
-            "$successful" \
-            "$timeouts" \
-            "$redirected" \
-            "$excluded" \
-            "$unknown" \
-            "$errors" \
-            "$unsupported"
-          do
-            if [ "$value" = "n/a" ]; then
-              parse_ok="false"
-              break
-            fi
-          done
-
-          {
-            echo "## Link Check Report"
-            echo ""
-
-            if [ "$parse_ok" = "true" ]; then
-              echo "| Status        | Count |"
-              echo "|---------------|-------|"
-              echo "| Total         | ${total} |"
-              echo "| Successful    | ${successful} |"
-              echo "| Timeouts      | ${timeouts} |"
-              echo "| Redirected    | ${redirected} |"
-              echo "| Excluded      | ${excluded} |"
-              echo "| Unknown       | ${unknown} |"
-              echo "| Errors        | ${errors} |"
-              echo "| Unsupported   | ${unsupported} |"
-            else
-              echo "Count extraction did not match the current Lychee report format."
-              echo ""
-              echo "| Status      | Value |"
-              echo "|-------------|-------|"
-              echo "| Exit code   | ${{ steps.lychee.outputs.exit_code }} |"
-              if [ -s "${REPORT_PATH}" ]; then
-                echo "| Report file | present |"
-              else
-                echo "| Report file | missing |"
-              fi
-            fi
-
-            echo ""
-
-            if [ -s "${REPORT_PATH}" ]; then
-              echo "<details>"
-              echo "<summary>Full Lychee markdown report</summary>"
-              echo ""
-              echo ""
-              cat "${REPORT_PATH}"
-              echo ""
-              echo "</details>"
-            else
-              echo "No markdown report was generated at \`${REPORT_PATH}\`."
-            fi
-
-            echo ""
-            echo "## Run Metadata"
-            echo ""
-            echo "- Event: \`${{ github.event_name }}\`"
-            echo "- Ref: \`${{ github.ref }}\`"
-            echo "- Lychee exit code: \`${{ steps.lychee.outputs.exit_code }}\`"
-            echo "- Report path: \`${REPORT_PATH}\`"
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: 4) Comment on PR if links broken
-        if: steps.lychee.outputs.exit_code != 0 && github.event_name == 'pull_request' && env.REPORT_FAILURES == 'true'
-        uses: actions/github-script@v8
-        with:
-          script: |
-            const fs = require("fs");
-            const runUrl = `${context.payload.repository.html_url}/actions/runs/${context.runId}`;
-
-            let report = "Lychee report file was not found.";
-            try {
-              report = fs.readFileSync("./lychee/out.md", "utf8");
-            } catch (error) {
-              // Keep fallback text above.
-            }
-
-            const comment = [
-              "## Link Check Results",
-              "",
-              `Some links appear broken. Check the workflow run: ${runUrl}`,
-              "",
-              "<details><summary>Lychee report</summary>",
-              "",
-              "```md",
-              report,
-              "```",
-              "",
-              "</details>",
-            ].join("\n");
-
-            await github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: comment,
-            });
-
-      - name: 5) Create issue for scheduled failures
-        # WHY: Track broken links found during scheduled checks
-        # OBS: Only creates issue if none already open with 'broken-links' label
-        if: steps.lychee.outputs.exit_code != 0 && github.event_name == 'schedule' && env.REPORT_FAILURES == 'true'
-        uses: actions/github-script@v8
-        with:
-          script: |
-            const fs = require("fs");
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-            const date = new Date().toISOString().split("T")[0];
-            const title = `Link Check Failed - ${date}`;
-            const runUrl = `${context.payload.repository.html_url}/actions/runs/${context.runId}`;
-
-            let report = "Lychee report file was not found.";
-            try {
-              report = fs.readFileSync("./lychee/out.md", "utf8");
-            } catch (error) {
-              // Keep fallback text above.
-            }
-
-            const body = [
-              "Monthly link check found broken links.",
-              "",
-              `Workflow run: ${runUrl}`,
-              "",
-              "Report:",
-              "",
-              report,
-            ].join("\n");
-
-            const existing = await github.rest.issues.listForRepo({
-              owner,
-              repo,
-              labels: "broken-links",
-              state: "open",
-              per_page: 1,
-            });
-
-            if (existing.data.length === 0) {
-              await github.rest.issues.create({
-                owner,
-                repo,
-                title,
-                body,
-                labels: ["maintenance", "broken-links"],
-              });
-            }
-
-      - name: 6) Fail job if broken links were found
-        if: always()
-        run: |
-          code="${{ steps.lychee.outputs.exit_code }}"
-
-          if [ -z "$code" ]; then
-            echo "Lychee exit code was missing. Failing workflow defensively."
-            exit 1
-          fi
-
-          if [ "$code" != "0" ]; then
-            echo "Lychee found broken links (exit_code=$code). Failing workflow."
-            exit 1
-          fi

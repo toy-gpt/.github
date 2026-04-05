@@ -7,7 +7,7 @@
 # OBS: CI validates only; it never edits files or deploys docs.
 # OBS: Optional tools (ruff, pyright, deptry, pytest, mkdocs) run only if configured.
 
-name: CI (Toy GPT)
+name: CI
 
 # WHY: Validate docs and repo metadata on PRs and pushes.
 # OBS: This workflow validates only; it never deploys.
