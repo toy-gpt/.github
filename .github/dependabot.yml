@@ -3,8 +3,9 @@
 # ============================================================
 # WHY: GitHub Actions are executable dependencies; auto-update for security patches.
 # OBS: Python packages are upgraded manually, not here.
-# OBS: Training repos use thin callers (uses: toy-gpt/.github/...@main) with no
-#      pinned versions of their own. This file is the single org update point.
+# OBS: Training repos use thin callers with no
+#      pinned versions of their own.
+#      This file is the single org update point.
 
 version: 2
 
