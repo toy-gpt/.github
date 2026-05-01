@@ -98,7 +98,7 @@ jobs:
         # WHY: GitHub Pages deployments require a packaged artifact containing
         # the built static site. This step bundles the contents of the site/
         # directory so the next step can publish it.
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v5
         with:
           path: site # WHY: Default Zensical output directory for the built site.
 
