@@ -44,7 +44,7 @@ jobs:
 
       - name: A1) Checkout repository code
         # WHY: Needed to access files for checks.
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: A2) Configure GitHub Pages
         # WHY: Sets Pages metadata for deployments.
