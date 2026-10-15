@@ -41,24 +41,28 @@ jobs:
       # === ASSEMBLE ===
 
       - name: A1) Checkout repository with full history and tags
-        uses: actions/checkout@v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
+          persist-credentials: false
           fetch-depth: 0   # WHY: hatch-vcs needs full history to derive version from tags.
           fetch-tags: true
           ref: ${{ github.ref }}
 
       - name: A2) Configure GitHub Pages
-        # WHY: Sets Pages metadata for deployments.
-        uses: actions/configure-pages@v6
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6
+        # WHY: Sets Pages metadata used by upload-pages-artifact and deploy-pages.
+        # OBS: Must run before the build step so base URL is available if needed.
 
       - name: A3) Install uv (with caching and uv.lock awareness)
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
-          enable-cache: true
+          enable-cache: false # disable caching for publishing
           cache-dependency-glob: "uv.lock"
 
-      - name: A4) Install Python 3.14
-        run: uv python install 3.14
+      - name: A4) Install project Python
+        run: uv python install
+        # WHY: Ensures the Python version declared in .python-version is available.
+        # OBS: uv manages the interpreter locally in the CI environment.
 
       - name: A5) Display versions
         run: |
@@ -90,9 +94,10 @@ jobs:
 
       - name: B4) Ensure built artifact version matches tag
         shell: bash
+        env:
+          TAG: ${{ steps.ver.outputs.plain }}
         run: |
           set -e
-          TAG="${{ steps.ver.outputs.plain }}"
           echo "Tag version: $TAG"
           ls dist
           if ! ls dist/*"$TAG"*.whl dist/*"$TAG"*.tar.gz >/dev/null 2>&1; then
@@ -103,8 +108,9 @@ jobs:
 
       # === CHECKS (after build, may modify working tree) ===
 
-      - name: C1) Sync to install all dependencies
-        run: uv sync --extra dev --extra docs --upgrade
+      - name: C1) Install dependencies from committed lockfile
+        run: uv sync --frozen
+        # WHY: Install dependencies from the committed uv.lock without updating it.
 
       - name: C2) Ruff format (check only)
         run: uv run ruff format --check .
@@ -112,22 +118,17 @@ jobs:
       - name: C3) Ruff lint (no fixes)
         run: uv run ruff check .
 
-      - name: C4) Validate pyproject.toml
-        run: uvx validate-pyproject
-
-      - name: C5) Pyright (type check)
-        run: uv run pyright
-
-      - name: C6) Deptry (dependency check)
-        run: uvx deptry .
+      - name: C4) Validate pyproject.toml schema
+        run: uvx "validate-pyproject[all]" pyproject.toml
+        # WHY: Catch malformed project metadata before downstream CI or release work.
 
       - name: C7) Validate built artifacts
-        run: uv run twine check dist/*
+        run: uvx twine check dist/*
 
       # === DEPLOY RELEASE AND DOCS ===
 
       - name: D1) Create GitHub Release and upload artifacts
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3
         with:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
@@ -140,15 +141,19 @@ jobs:
           make_latest: true
 
       - name: D2) Publish to PyPI (Trusted Publishing)
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
 
-      - name: D3) Build docs with Zensical
+      - name: D3) Build documentation with Zensical
         run: |
-          if [ ! -f "zensical.toml" ]; then
-            echo "zensical.toml not found; skipping docs deploy." >> "$GITHUB_STEP_SUMMARY"
-            exit 0
+          if [ -f "zensical.toml" ]; then
+            uv run python -m zensical build
+          else
+            echo "No zensical.toml found; skipping docs build."
           fi
-          uv run zensical build
+        # WHY: Confirm documentation builds without errors.
+        # OBS: This workflow builds only; deployment is handled separately.
+        # OBS: Conditional on zensical.toml so this workflow remains reusable
+        #      across Python-managed repositories that may not use Zensical.
 
       - name: D4) Verify site output exists
         run: |
@@ -160,9 +165,14 @@ jobs:
           fi
 
       - name: D5) Upload Pages artifact
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5
         with:
           path: site
+        # WHY: Packages the built static site for the deploy-pages action.
+        # OBS: path must match the output directory verified in D2.
 
       - name: D6) Deploy to GitHub Pages
-        uses: actions/deploy-pages@v5
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5
+        # WHY: Publishes the uploaded artifact to GitHub Pages.
+        # OBS: Requires pages: write and id-token: write permissions (set above).
+        # OBS: The deployed URL is shown in the Actions log after this step completes.

@@ -131,6 +131,28 @@ git push -u origin main
 
 **17/17 repos** clean
 
+## Developer
+
+```shell
+uv run --env-file .env python src/toy_gpt_github/checks.py
+uv run --env-file .env python -m toy_gpt_github.checks
+uv run --env-file .env python src/toy_gpt_github/checks.py --write-markdown org-health.md
+```
+
+### Update GitHub Actions and pin all action references to immutable SHAs
+
+```shell
+uvx gha-tools autoupdate --pin=all --write .github/workflows
+```
+
+#### Then audit the resulting GitHub configuration for security findings
+
+```shell
+uvx zizmor@latest .github/
+```
+
+Note: One informational is fine.
+
 ## Resources
 
 - [Pro-Analytics-02](https://denisecase.github.io/pro-analytics-02/) - guide to professional Python
