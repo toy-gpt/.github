@@ -1,5 +1,4 @@
-"""
-src/toy_gpt_github/checks.py - toy-gpt org health scanner
+"""src/toy_gpt_github/checks.py - toy-gpt org health scanner.
 
 WHY: Scan all repos in the toy-gpt org and report on workflow status
      and file presence.
@@ -14,10 +13,10 @@ REQUIRES:
     pip install httpx rich           # or add to pyproject.toml dev deps
 """
 
-import os
-import sys
 from dataclasses import dataclass, field
+import os
 from pathlib import Path
+import sys
 
 import httpx
 from rich.console import Console
@@ -31,24 +30,17 @@ ORG = "toy-gpt"
 BASE = "https://api.github.com"
 
 # Workflow filenames to check (as they appear in .github/workflows/)
-WORKFLOWS_TO_CHECK = ["ci-shared.yml", "deploy-docs-shared.yml", "links.yml"]
+WORKFLOWS_TO_CHECK = ["ci-python-zensical.yml", "deploy-zensical.yml", "links.yml"]
 
 # Files whose presence indicates repo health / migration state
 FILES_TO_CHECK = {
     "zensical.toml": "zensical",
-    "SE_MANIFEST.toml": "manifest",
     ".github/dependabot.yml": "dependabot",
     "py.typed": "py.typed",
 }
 
-# Thin caller pattern — workflow files should contain this string if migrated
-CALLER_PATTERN = "uses: toy-gpt/.github/.github/workflows/"
-
-# Repos that ARE the org workflows — skip thin-caller check
-SKIP_THIN_CALLER = {".github"}
-
-# Repos that don't need SE_MANIFEST.toml
-SKIP_MANIFEST = {".github", "toy-gpt-chat"}
+# Repositories without a Zensical docs site (zensical.toml does not apply).
+NO_ZENSICAL_REPOS = {"toy-gpt-chat"}
 
 # ============================================================
 # Data
@@ -57,13 +49,16 @@ SKIP_MANIFEST = {".github", "toy-gpt-chat"}
 
 @dataclass
 class WorkflowStatus:
+    """Represents the status of a single workflow in a repository."""
+
     name: str
     status: str  # "pass", "fail", "missing", "unknown"
-    is_thin_caller: bool = False
 
 
 @dataclass
 class RepoReport:
+    """Represents the health report of a single repository."""
+
     name: str
     archived: bool = False
     workflows: list[WorkflowStatus] = field(default_factory=list)
@@ -77,6 +72,7 @@ class RepoReport:
 
 
 def make_client(token: str) -> httpx.Client:
+    """Create an HTTPX client configured for the GitHub API."""
     return httpx.Client(
         base_url=BASE,
         headers={
@@ -89,6 +85,7 @@ def make_client(token: str) -> httpx.Client:
 
 
 def get_repos(client: httpx.Client, org: str) -> list[dict]:
+    """Retrieve all repositories for the given organization."""
     repos = []
     page = 1
     while True:
@@ -103,7 +100,10 @@ def get_repos(client: httpx.Client, org: str) -> list[dict]:
 
 
 def get_latest_run(client: httpx.Client, org: str, repo: str, workflow: str) -> str:
-    """Returns 'pass', 'fail', 'missing', or 'unknown'."""
+    """Retrieve the latest run status for a given workflow in a repository.
+
+    Returns 'pass', 'fail', 'missing', or 'unknown'.
+    """
     r = client.get(
         f"/repos/{org}/{repo}/actions/workflows/{workflow}/runs",
         params={"per_page": 1, "branch": "main"},
@@ -124,22 +124,9 @@ def get_latest_run(client: httpx.Client, org: str, repo: str, workflow: str) -> 
 
 
 def file_exists(client: httpx.Client, org: str, repo: str, path: str) -> bool:
+    """Check if a file exists in the repository."""
     r = client.get(f"/repos/{org}/{repo}/contents/{path}")
     return r.status_code == 200
-
-
-def is_thin_caller(client: httpx.Client, org: str, repo: str, workflow: str) -> bool:
-    """Check if a workflow file contains the org caller pattern."""
-    r = client.get(f"/repos/{org}/{repo}/contents/.github/workflows/{workflow}")
-    if r.status_code != 200:
-        return False
-
-    import base64
-
-    content = base64.b64decode(r.json().get("content", "")).decode(
-        "utf-8", errors="replace"
-    )
-    return CALLER_PATTERN in content
 
 
 # ============================================================
@@ -148,6 +135,7 @@ def is_thin_caller(client: httpx.Client, org: str, repo: str, workflow: str) -> 
 
 
 def analyse_repo(client: httpx.Client, repo: dict) -> RepoReport:
+    """Analyze a single repository and return its health report."""
     name = repo["name"]
     report = RepoReport(name=name, archived=repo.get("archived", False))
 
@@ -157,12 +145,7 @@ def analyse_repo(client: httpx.Client, repo: dict) -> RepoReport:
     # Workflow statuses
     for wf in WORKFLOWS_TO_CHECK:
         status = get_latest_run(client, ORG, name, wf)
-        thin = False
-        if status != "missing":
-            thin = is_thin_caller(client, ORG, name, wf)
-        report.workflows.append(
-            WorkflowStatus(name=wf, status=status, is_thin_caller=thin)
-        )
+        report.workflows.append(WorkflowStatus(name=wf, status=status))
 
     # File presence
     for path, label in FILES_TO_CHECK.items():
@@ -173,15 +156,6 @@ def analyse_repo(client: httpx.Client, repo: dict) -> RepoReport:
     for wf in report.workflows:
         if wf.status == "fail":
             report.issues.append(f"workflow failing: {wf.name}\n  -> {actions_url}")
-        if (
-            name not in SKIP_THIN_CALLER
-            and wf.status != "missing"
-            and not wf.is_thin_caller
-        ):
-            report.issues.append(f"not a thin caller: {wf.name}")
-
-    if name not in SKIP_MANIFEST and not report.files.get("manifest"):
-        report.issues.append("SE_MANIFEST.toml missing")
 
     if not report.files.get("dependabot"):
         report.issues.append("dependabot.yml missing")
@@ -202,12 +176,14 @@ STATUS_SYMBOL = {
 
 
 def md_cell(text: str) -> str:
+    """Return the given text formatted for a Markdown table cell."""
     text = text.replace("\n", "<br>")
     text = text.replace("|", "\\|")
     return text
 
 
 def render(reports: list[RepoReport]) -> None:
+    """Render the org health report as a table in the console."""
     console = Console()
 
     table = Table(title="toy-gpt org health", show_lines=True)
@@ -215,15 +191,13 @@ def render(reports: list[RepoReport]) -> None:
     table.add_column("ci", justify="center")
     table.add_column("deploy", justify="center")
     table.add_column("links", justify="center")
-    table.add_column("thin?", justify="center")
     table.add_column("zen", justify="center")
-    table.add_column("mani", justify="center")
     table.add_column("dbot", justify="center")
     table.add_column("Issues")
 
     for r in reports:
         if r.archived:
-            table.add_row(f"[dim]{r.name} (archived)[/dim]", *["-"] * 8)
+            table.add_row(f"[dim]{r.name} (archived)[/dim]", *["-"] * 6)
             continue
 
         wf_map = {w.name: w for w in r.workflows}
@@ -232,18 +206,6 @@ def render(reports: list[RepoReport]) -> None:
             w = wf_map.get(name)
             return STATUS_SYMBOL.get(w.status, "?") if w else "-"
 
-        def thin_all(r=r) -> str:
-            if r.name in SKIP_THIN_CALLER:
-                return "[dim]-[/dim]"
-            non_missing = [w for w in r.workflows if w.status != "missing"]
-            if not non_missing:
-                return "[dim]-[/dim]"
-            return (
-                "[green]yes[/green]"
-                if all(w.is_thin_caller for w in non_missing)
-                else "[red]NO[/red]"
-            )
-
         def f(label: str, r=r) -> str:
             return "[green]yes[/green]" if r.files.get(label) else "[red]NO[/red]"
 
@@ -251,12 +213,10 @@ def render(reports: list[RepoReport]) -> None:
 
         table.add_row(
             r.name,
-            ws("ci-shared.yml"),
-            ws("deploy-docs-shared.yml"),
+            ws("ci-python-zensical.yml"),
+            ws("deploy-zensical.yml"),
             ws("links.yml"),
-            thin_all(),
-            f("zensical"),
-            f("manifest"),
+            "[dim]-[/dim]" if r.name in NO_ZENSICAL_REPOS else f("zensical"),
             f("dependabot"),
             issues,
         )
@@ -269,14 +229,13 @@ def render(reports: list[RepoReport]) -> None:
 
 
 def render_markdown(reports: list[RepoReport]) -> str:
+    """Render the org health report as a Markdown string suitable for writing to a file."""
     headers = [
         "Repo",
         "ci",
         "deploy",
         "links",
-        "thin?",
         "zen",
-        "mani",
         "dbot",
         "Issues",
     ]
@@ -298,7 +257,7 @@ def render_markdown(reports: list[RepoReport]) -> str:
     for r in reports:
         if r.archived:
             lines.append(
-                f"| {md_cell(r.name + ' (archived)')} | - | - | - | - | - | - | - | - |"
+                f"| {md_cell(r.name + ' (archived)')} | - | - | - | - | - | - |"
             )
             continue
 
@@ -308,15 +267,6 @@ def render_markdown(reports: list[RepoReport]) -> str:
             w = wf_map.get(name)
             return sym(w.status) if w else "-"
 
-        if r.name in SKIP_THIN_CALLER:
-            thin = "-"
-        else:
-            non_missing = [w for w in r.workflows if w.status != "missing"]
-            if not non_missing:
-                thin = "-"
-            else:
-                thin = "yes" if all(w.is_thin_caller for w in non_missing) else "NO"
-
         def f(label: str, r=r) -> str:
             return "yes" if r.files.get(label) else "NO"
 
@@ -324,12 +274,10 @@ def render_markdown(reports: list[RepoReport]) -> str:
 
         row = [
             md_cell(r.name),
-            md_cell(ws("ci-shared.yml")),
-            md_cell(ws("deploy-docs-shared.yml")),
+            md_cell(ws("ci-python-zensical.yml")),
+            md_cell(ws("deploy-zensical.yml")),
             md_cell(ws("links.yml")),
-            md_cell(thin),
-            md_cell(f("zensical")),
-            md_cell(f("manifest")),
+            md_cell("-" if r.name in NO_ZENSICAL_REPOS else f("zensical")),
             md_cell(f("dependabot")),
             md_cell(issues),
         ]
@@ -339,13 +287,14 @@ def render_markdown(reports: list[RepoReport]) -> str:
     clean = sum(1 for r in reports if not r.archived and not r.issues)
 
     lines.append("")
-    lines.append(f"**{clean}/{total} repos clean**")
+    lines.append(f"**{clean}/{total}** repos clean")
     lines.append("")
 
     return "\n".join(lines)
 
 
 def write_markdown_report(reports: list[RepoReport], output_path: str) -> None:
+    """Write the org health report as a Markdown file."""
     path = Path(output_path)
     path.write_text(render_markdown(reports), encoding="utf-8")
 
@@ -356,11 +305,13 @@ def write_markdown_report(reports: list[RepoReport], output_path: str) -> None:
 
 
 def main() -> None:
+    """Main entry point for the script."""
     token = os.environ.get("GITHUB_TOKEN")
     if not token:
         print("ERROR: GITHUB_TOKEN not set.", file=sys.stderr)
         sys.exit(1)
 
+    # Path to write the Markdown report to, if specified
     markdown_output_path = None
     if "--write-markdown" in sys.argv:
         idx = sys.argv.index("--write-markdown")

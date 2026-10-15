@@ -12,9 +12,10 @@ given some text, **predict the next word**.
 
 Repeated many times, this produces full conversations.
 
-What we recognize as a GPT-type chatbot is simply
-the result of making useful **next-word predictions** over and over,
+What we recognize as a GPT-type chatbot is built on
+making useful **next-token predictions** over and over,
 using the context of text seen so far.
+(Chat assistants are then trained further to follow instructions.)
 
 ## How They Work
 
@@ -24,8 +25,7 @@ When generating a response, the model works step by step,
 using the words so far (its context window) to choose the next one.
 **At each step**, it makes a **best guess** based on what it has learned.
 
-It doesn't plan a sentence in advance;
-the result **emerges one word at a time**.
+Generation proceeds **one token at a time**.
 
 ## Toy GPT Exploration (2D Matrix)
 
@@ -38,17 +38,23 @@ affects next-token predictions.
 The results determine how well the conversation goes.
 
 We include a **neutral** cat-dog corpus (linked below)
-to illustrate cases where additional context (more prior words)
-provides little or no benefit.
+to illustrate cases where context beyond one previous word
+provides **no additional benefit**:
+which noun follows "on the"
+depends on both the subject and the verb,
+which a window of three tokens cannot see.
 
 ## LLM Training Costs
 
-Most computational effort occurs during training, not use.
-Running a trained model in conversation is relatively inexpensive;
-training it requires processing large amounts of human-written text
+Training is a large, one-time computational effort.
+Each conversation with a trained model costs far less than training did,
+but across many users the total cost of running a model can rival or exceed it.
+
+Training requires processing large amounts of human-written text
 and repeatedly adjusting the model to improve predictions.
+
 Large systems may take days or weeks of computation across many machines.
-The pre-trained models in Toy GPT reflect the same process at a much smaller scale.
+The pre-trained models in Toy GPT reflect the same process at much smaller scale.
 
 ## Combinatorial Explosion
 
@@ -59,9 +65,11 @@ so the weight matrix grows as vocab³:
 
 | Corpus       | Vocab size  | Model     | Weight matrix rows | Approx. size |
 | ------------ | ----------- | --------- | ------------------ | ------------ |
-| cat/dog      | ~20 tokens  | context-3 | 20³ = 8,000        | ~3 MB        |
+| cat/dog      | 8 tokens    | context-3 | 8³ = 512           | ~15 kB[1]    |
 | llm_glossary | ~119 tokens | context-2 | 119² = 14,161      | ~10 MB       |
 | llm_glossary | ~119 tokens | context-3 | 119³ = 1,685,159   | **~428 MB**  |
+
+[1] Size of train-400-context-3\artifacts\02_model_weights.csv.
 
 Our simple Context-3 model (without embeddings) grew to **428 MB**,
 consisting mostly of zeros (because relatively few combinations appear in context).
@@ -127,7 +135,7 @@ Select a corpus (the text the model is trained on):
 ### Training Repositories: Model-Corpus Matrix
 
 | Repository                                                                                      | Model      | Corpus                                                                                                                                                     | Context |
-| ----------------------------------------------------------------------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| ----------------------------------------------------------------------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | --- |
 | [train-100-unigram](https://github.com/toy-gpt/train-100-unigram)                               | Unigram    | [000 cat_dog](https://raw.githubusercontent.com/toy-gpt/train-100-unigram/refs/heads/main/corpus/000_cat_dog.txt) (**neutral**)                            | 0       |
 | [train-200-bigram](https://github.com/toy-gpt/train-200-bigram)                                 | Bigram     | [000 cat_dog](https://raw.githubusercontent.com/toy-gpt/train-200-bigram/refs/heads/main/corpus/000_cat_dog.txt) (**neutral**)                             | 1       |
 | [train-300-context-2](https://github.com/toy-gpt/train-300-context-2)                           | Context-2  | [000 cat_dog](https://raw.githubusercontent.com/toy-gpt/train-300-context-2/refs/heads/main/corpus/000_cat_dog.txt) (**neutral**)                          | 2       |
@@ -142,7 +150,7 @@ Select a corpus (the text the model is trained on):
 | [train-302-context-2-repo-tour](https://github.com/toy-gpt/train-302-context-2-repo-tour)       | Context-2  | [020 repo_tour](https://raw.githubusercontent.com/toy-gpt/train-302-context-2-repo-tour/refs/heads/main/corpus/020_repo_tour.txt) (**domain**)             | 2       |
 | [train-500-embeddings](https://github.com/toy-gpt/train-500-embeddings)                         | Embeddings | [030 analytics](https://raw.githubusercontent.com/toy-gpt/train-500-embeddings/refs/heads/main/corpus/030_analytics.txt) (**domain**)                      | 2       |
 | [train-600-attention](https://github.com/toy-gpt/train-600-attention)                           | Attention  | [030 analytics](https://raw.githubusercontent.com/toy-gpt/train-600-attention/refs/heads/main/corpus/030_analytics.txt) (**domain**) ℹ️                    | 2       |
-| [train-600-attention-3](https://github.com/toy-gpt/train-600-attention-3)                       | Attention  | [030 analytics](https://raw.githubusercontent.com/toy-gpt/train-600-attention-3/refs/heads/main/corpus/030_analytics.txt) (**domain**) ℹ️                  | 3       | -->
+| [train-600-attention-3](https://github.com/toy-gpt/train-600-attention-3)                       | Attention  | [030 analytics](https://raw.githubusercontent.com/toy-gpt/train-600-attention-3/refs/heads/main/corpus/030_analytics.txt) (**domain**) ℹ️                  | 3       | --> |
 
 - ⚠️ Too large to commit (428 MB of mostly zeros).
 - ℹ️ Attention requires a larger corpus to produce meaningful position weighting.
@@ -163,14 +171,39 @@ Blank cells indicate combinations intentionally not explored.
 
 ## Model numbering
 
-Model codes increase with architectural complexity:
+Model codes increase with architectural complexity.
 
-- **100/unigram**: predicts the next token using only overall frequency, without considering surrounding context.
-- **200/bigram**: predicts the next token conditioned on the immediately preceding token.
-- **300/context-2**: predicts the next token using the previous two tokens as context. Architecturally equivalent to a bigram model, but implemented in a way that generalizes to longer contexts.
-- **400/context-3**: predicts the next token using the previous three tokens as context.
-- **500/embeddings**: learns numeric vector representations of tokens so related tokens occupy nearby locations in a learned space.
-- **600/attention**: dynamically weights which prior tokens matter most when predicting the next token, rather than treating all context equally.
+### 100/unigram
+
+Predicts the next token using only overall frequency, without considering surrounding context.
+
+### 200/bigram
+
+Predicts the next token conditioned on the immediately preceding token.
+
+### 300/context-2
+
+Predicts the next token using the previous two tokens as context
+(a trigram model in n-gram terms).
+Unlike the bigram (200), it can capture dependencies two tokens back.
+It is stored as a sliding context window
+so the same structure extends to context-3 (400),
+embeddings (500) and attention (600).
+
+### 400/context-3
+
+Predicts the next token using the previous three tokens as context.
+
+### 500/embeddings
+
+Learns numeric vector representations of tokens
+so related tokens occupy nearby locations in a learned space.
+
+### 600/attention
+
+Dynamically weights which prior tokens
+matter most when predicting the next token,
+rather than treating all context equally.
 
 See the paper [**Attention Is All You Need**](https://arxiv.org/abs/1706.03762) for background on attention-based models.
 
@@ -183,25 +216,33 @@ Corpus IDs are three digits and follow a project-wide standard:
 - **100–799**: additional contributions
 
 Each corpus file is named `NNN_slug.txt`.
-The corpus ID and slug are recorded in `SE_MANIFEST.toml`.
 
 ## Terms
 
-- **neutral corpus**
-  A corpus deliberately constructed so that adjacency carries little or no predictive signal.
-  Increasing context length (bigram, context-2, context-3) should provide minimal benefit.
-  Used as a negative control.
+### Neutral corpus
 
-- **structured corpus**
-  A corpus where adjacency or proximity carries meaningful predictive signal
-  (e.g., attributes, phrases, or semantic groupings).
-  Increasing context length should measurably improve predictions.
+A corpus deliberately constructed so that
+context beyond one previous token
+adds no benefit
+(context-2 and context-3 should not beat the bigram).
+Some adjacency signal remains
+(for example, "sat" is always followed by "on"),
+so a bigram still beats a unigram.
+Used as a negative control for longer contexts.
 
-- **unigram**
-  A model that conditions on a single token (`uni` = one).
+### Structured corpus
 
-- **bigram**
-  A model that conditions on two tokens (`bi` = two).
+A corpus where adjacency or proximity carries meaningful predictive signal
+(e.g., attributes, phrases, or semantic groupings).
+Increasing context length should measurably improve predictions.
+
+### Unigram
+
+A model with no context: it predicts the next token from overall token frequency alone.
+
+### Bigram
+
+A model whose context is one previous token: it predicts from adjacent pairs.
 
 ## Purpose
 

@@ -30,17 +30,9 @@ Go to https://github.com/settings/tokens?type=beta (fine-grained tokens, recomme
 Copy to .env (not committed to GitHub).
 You only see it once.
 
-## Command Reference
+## Developer
 
-The commands below are used in the workflow guide above.
-They are provided here for convenience.
-
-Follow the guide for the **full instructions**.
-
-<details>
-<summary>Show command reference</summary>
-
-### In a machine terminal (open in your `Repos` folder)
+### Clone and Open in VS Code
 
 After you get a copy of this repo in your own GitHub account,
 open a machine terminal in your `Repos` folder:
@@ -53,55 +45,91 @@ cd .github
 code .
 ```
 
-### In a VS Code terminal
+### Initialize and Update the Python Environment
+
+With the project open in VS Code, open a VS Code terminal.
+Paste each command and hit Enter or Return after to run it.
 
 ```shell
+uvx pup-clean --delete
 uv self update
 uv python pin 3.14
-uv sync --extra dev --extra docs --upgrade
+uv python install
+uv lock --upgrade
+uv sync
+uv audit
+```
 
-uvx pre-commit install
+### Set Up and Run Git Hooks
+
+Set up and run the git hooks to perform
+basic checks automatically before
+any changes get pushed to GitHub.
+
+In the VS Code terminal,
+paste each command and hit Enter or Return after to run it.
+
+```shell
+uv run prek install --force
+uv run prek update --freeze --cooldown-days 7
+
 git add -A
-uvx pre-commit run --all-files
+uv run prek run --all-files
+# repeat if changes were made
+uv run prek run --all-files
+```
 
-# just console / console and md file
-uv run --env-file .env python src/toy_gpt_github/checks.py
-uv run --env-file .env python src/toy_gpt_github/checks.py --write-markdown org-health.md
+### Run Common Chores
 
-uv run ruff format .
+Run linters, formatters, type checks, tests, and
+build the documentation.
+
+```shell
 uv run ruff check . --fix
-uv run zensical build
+uv run ruff format .
 
+uv run ty check
+uv run python -m pytest
+uv run python -m zensical build
+```
+
+### Git add-commit-push to GitHub
+
+After making useful changes, save your work to GitHub.
+
+```shell
 git add -A
 git commit -m "update"
+# rerun if changes were made
+git add -A
+git commit -m "update"
+
 git push -u origin main
 ```
 
-</details>
-
 ## toy-gpt org health
 
-| Repo | ci | deploy | links | thin? | zen | mani | dbot | Issues |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| .github | - | - | yes | - | yes | NO | yes | ok |
-| toy-gpt-chat | - | - | yes | yes | NO | yes | yes | ok |
-| train-100-unigram | yes | yes | yes | yes | yes | yes | yes | ok |
-| train-100-unigram-animals | yes | yes | yes | yes | yes | yes | yes | ok |
-| train-200-bigram | yes | yes | yes | yes | yes | yes | yes | ok |
-| train-200-bigram-animals | yes | yes | yes | yes | yes | yes | yes | ok |
-| train-201-bigram-llm-glossary | yes | yes | yes | yes | yes | yes | yes | ok |
-| train-300-context-2 | yes | yes | yes | yes | yes | yes | yes | ok |
-| train-300-context-2-animals | yes | yes | yes | yes | yes | yes | yes | ok |
-| train-301-context-2-llm-glossary | yes | yes | yes | yes | yes | yes | yes | ok |
-| train-302-context-2-repo-tour | yes | yes | yes | yes | yes | yes | yes | ok |
-| train-400-context-3 | yes | yes | yes | yes | yes | yes | yes | ok |
-| train-400-context-3-animals | yes | yes | yes | yes | yes | yes | yes | ok |
-| train-401-context-3-llm-glossary | yes | yes | yes | yes | yes | yes | yes | ok |
-| train-500-embeddings | yes | yes | yes | yes | yes | yes | yes | ok |
-| train-600-attention | yes | yes | yes | yes | yes | yes | yes | ok |
-| train-600-attention-3 | yes | yes | yes | yes | yes | yes | yes | ok |
+| Repo                             | ci  | deploy | links | thin? | zen | mani | dbot | Issues |
+| -------------------------------- | --- | ------ | ----- | ----- | --- | ---- | ---- | ------ |
+| .github                          | -   | -      | yes   | -     | yes | NO   | yes  | ok     |
+| toy-gpt-chat                     | -   | -      | yes   | yes   | NO  | yes  | yes  | ok     |
+| train-100-unigram                | yes | yes    | yes   | yes   | yes | yes  | yes  | ok     |
+| train-100-unigram-animals        | yes | yes    | yes   | yes   | yes | yes  | yes  | ok     |
+| train-200-bigram                 | yes | yes    | yes   | yes   | yes | yes  | yes  | ok     |
+| train-200-bigram-animals         | yes | yes    | yes   | yes   | yes | yes  | yes  | ok     |
+| train-201-bigram-llm-glossary    | yes | yes    | yes   | yes   | yes | yes  | yes  | ok     |
+| train-300-context-2              | yes | yes    | yes   | yes   | yes | yes  | yes  | ok     |
+| train-300-context-2-animals      | yes | yes    | yes   | yes   | yes | yes  | yes  | ok     |
+| train-301-context-2-llm-glossary | yes | yes    | yes   | yes   | yes | yes  | yes  | ok     |
+| train-302-context-2-repo-tour    | yes | yes    | yes   | yes   | yes | yes  | yes  | ok     |
+| train-400-context-3              | yes | yes    | yes   | yes   | yes | yes  | yes  | ok     |
+| train-400-context-3-animals      | yes | yes    | yes   | yes   | yes | yes  | yes  | ok     |
+| train-401-context-3-llm-glossary | yes | yes    | yes   | yes   | yes | yes  | yes  | ok     |
+| train-500-embeddings             | yes | yes    | yes   | yes   | yes | yes  | yes  | ok     |
+| train-600-attention              | yes | yes    | yes   | yes   | yes | yes  | yes  | ok     |
+| train-600-attention-3            | yes | yes    | yes   | yes   | yes | yes  | yes  | ok     |
 
-**17/17 repos clean**
+**17/17 repos** clean
 
 ## Resources
 
@@ -109,7 +137,7 @@ git push -u origin main
 
 ## Annotations
 
-[ANNOTATIONS.md](./ANNOTATIONS.md)
+[ANNOTATIONS](.annotations/annotations.md)
 
 <!--
 WHY: Keep decision rationale close to code and configuration.

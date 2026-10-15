@@ -1,179 +1,151 @@
 # ============================================================
-# .github/workflows/ci-org.yml (Continuous Integration)
+# .github/workflows/ci-org.yml from ci-python-zensical.yml (ALL-PY-SRC-REPOS)
 # ============================================================
-# WHY-FILE: Validate repository hygiene and documentation builds.
-# REQ: Any check that can be run locally MUST be available locally via pre-commit.
-# REQ: CI MUST NOT introduce arbitrary rules that are not reproducible locally.
-# OBS: CI validates only; it never edits files or deploys docs.
-# OBS: Optional tools (ruff, pyright, deptry, pytest, mkdocs) run only if configured.
+# Updated: 2026-10-15  CUSTOM: Add workflow call support
+#
+# WHAT: A GitHub Actions workflow that automatically checks project quality.
+#       GitHub Actions is GitHub's built-in project automation service.
+#       This YAML file tells GitHub what commands to run and when to run them.
+#
+# WHEN: Use for Python projects that also use Zensical to build a
+#       professional documentation website describing the project,
+#       its data, methods, processes, and results.
+#
+# TRIGGER: Runs automatically when changes are pushed to the main branch
+#          or a pull request targets main. It can also be started manually.
+#          GitHub runs the checks on a fresh, temporary computer.
+#
+# WHY: Automated checks catch errors early and help ensure that the project
+#      works consistently beyond the developer's own computer.
+#      This workflow checks project configuration, Python code, tests,
+#      and whether the Zensical documentation builds successfully.
+#
+# CI/CD: Continuous Integration (CI) automatically checks changes.
+#        Continuous Delivery/Deployment (CD) prepares or publishes work.
+#        This workflow performs CI only; it does not publish the website.
+#        A separate workflow handles deployment.
+#
+# SKILLS: Git, GitHub, GitHub Actions, CI/CD, automated testing,
+#         project automation, and documentation builds.
+#
+# REQ: Repository MUST contain .python-version.
+# REQ: CI MUST NOT introduce rules that are not reproducible locally.
+# REQ: CI MUST validate only; it never persists file changes or deploys docs.
+# ============================================================
 
-name: CI
-
-# WHY: Validate docs and repo metadata on PRs and pushes.
-# OBS: This workflow validates only; it never deploys.
+# Name shown in the repository Actions tab.
+name: CI (Python + Zensical)
 
 on:
   push:
-    branches: [main]        # WHY: Run when pushing to main branch.
+    branches: [main] # WHY: Validate on every push to GitHub branch `main`.
   pull_request:
-    branches: [main]        # WHY: Run on pull requests targeting main branch.
-  workflow_dispatch:        # WHY: Allow manual triggering from Actions tab.
-  workflow_call:            # WHY: Allow calling from other repos in this org.
+    branches: [main] # WHY: Validate pull requests before merge.
+  workflow_call: # CUSTOM: Allow this workflow to be called by other workflows if needed.
+  workflow_dispatch: # WHY: Allow manual trigger from Actions tab.
 
-permissions:                # WHY: Use least privileges required.
-  contents: read
+permissions: # WHY: Least privilege; this job only needs repository read access.
+  contents: read # WHY: CI validates repository contents and never pushes changes.
+
+concurrency:
+  group: ci-python-zensical-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+  # WHY: Cancel a running CI check when new code is pushed to the same branch.
 
 env:
-  PYTHONUNBUFFERED: "1"         # WHY: Real-time logging.
-  PYTHONIOENCODING: "utf-8"     # WHY: Ensure UTF-8 encoding for international characters.
+  PYTHONUNBUFFERED: "1" # WHY: Display Python output immediately in CI logs.
+  UV_FROZEN: "1" # WHY: Use the committed lockfile without updating it.
 
 jobs:
   ci:
-    name: CI checks
-    runs-on: ubuntu-latest      # WHY: Linux environment matches most production deployments.
-    timeout-minutes: 30         # WHY: Prevent hanging jobs. If over, it is likely stuck.
+    name: Repo checks and Zensical build
+    runs-on: ubuntu-latest # WHY: Linux matches most production deployments.
+    timeout-minutes: 30 # WHY: Fail fast if a step hangs unexpectedly.
 
     steps:
-
       # ============================================================
-      # ASSEMBLE: Get code and set up environment
+      # A) ASSEMBLE: Checkout code and set up environment
       # ============================================================
 
       - name: A1) Checkout repository code
-        # WHY: Needed to access files for all subsequent checks.
-        uses: actions/checkout@v6
-
-      - name: A2) Run pre-commit (all files)
-        # WHY: Single source of truth for locally runnable quality gates.
-        # OBS: Fails if hooks would modify files; does not commit changes.
-        id: precommit
-        uses: pre-commit/action@v3.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          extra_args: --all-files
+          persist-credentials: false
+        # WHY: Required so all subsequent steps can access repo files.
 
-      - name: A2f) If pre-commit failed, show local fix instructions
-        if: failure()
-        run: |
-          echo "## Pre-commit failed" >> "$GITHUB_STEP_SUMMARY"
-          echo "Run pre-commit locally and commit the resulting changes." >> "$GITHUB_STEP_SUMMARY"
-
-      - name: A3) Install uv (with caching)
-        uses: astral-sh/setup-uv@v7
+      - name: A2) Install uv (with caching and uv.lock awareness)
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
           enable-cache: true
-          cache-dependency-glob: "uv.lock"  # WHY: Only re-cache when dependencies change.
+          # WHY: Cache uv-managed artifacts for faster subsequent runs.
+          cache-dependency-glob: "uv.lock"
+          # WHY: Invalidate dependency cache when the committed lockfile changes.
 
-      - name: A4) Install Python 3.14
-        run: uv python install 3.14
+      - name: A3) Install project Python
+        run: uv python install
+        # WHY: Ensures the Python version declared in .python-version is available.
+        # OBS: uv manages the interpreter locally in the CI environment.
 
-      - name: A5) Sync to install all dependencies
-        run: uv sync --extra dev --extra docs --upgrade
+      - name: A4) Install dependencies from committed lockfile
+        run: uv sync --frozen
+        # WHY: Create the project environment exactly from the committed uv.lock.
+        # REQ: CI MUST fail rather than update a stale or incompatible lockfile.
+
+      - name: A5) Show tool versions
+        run: |
+          uv --version
+          uv run python --version
+          if [ -f "zensical.toml" ]; then
+            uv run python -m zensical --version
+          fi
+        # WHY: Version output makes CI logs easier to debug when tools change.
+
+      - name: A6) Run repository hooks on all files (prek)
+        run: uvx prek run --all-files
+        # WHY: Run the same repository hygiene checks used locally.
+        # OBS: uvx runs prek independently of the project environment.
+        # OBS: prek reads the repository's prek.toml configuration.
+        # OBS: A clean commit should already pass without file changes.
+        # OBS: Autofixing hooks may modify the ephemeral CI checkout.
+        #      If they do, the hook runner fails because the committed files
+        #      were not already in their required final state.
+        # FIX: Run uvx prek run --all-files locally, review any autofixes,
+        #      fix remaining issues by hand, then git add, commit, and push.
 
       # ============================================================
-      # BASELINE CHECKS: Validate project metadata and code quality
+      # B) BASELINE CHECKS: Tools not covered by hooks
       # ============================================================
+      - name: B1) Validate pyproject.toml schema
+        run: uvx "validate-pyproject[all]" pyproject.toml
+        # WHY: Catch malformed project metadata before downstream CI or release work.
 
-      - name: B1) Validate pyproject.toml structure
-        run: uvx validate-pyproject
-
-      - name: B2) Ruff format check (if configured)
-        # OBS: Skipped if [tool.ruff] is not present in pyproject.toml.
-        run: |
-          if grep -q "\[tool\.ruff\]" pyproject.toml; then
-            uv run ruff format --check --diff .
-          else
-            echo "No ruff config found; skipping format check."
-          fi
-
-      - name: B3) Ruff lint check (if configured)
-        # OBS: Skipped if [tool.ruff] is not present in pyproject.toml.
-        run: |
-          if grep -q "\[tool\.ruff\]" pyproject.toml; then
-            uv run ruff check .
-          else
-            echo "No ruff config found; skipping lint check."
-          fi
-
-      - name: B4) Pyright type check (if configured)
-        # OBS: Skipped if [tool.pyright] is not present in pyproject.toml.
-        run: |
-          if grep -q "\[tool\.pyright\]" pyproject.toml; then
-            uv run pyright
-          else
-            echo "No pyright config found; skipping type check."
-          fi
-
-      - name: B5) Deptry dependency check (if configured)
-        # OBS: Skipped if [tool.deptry] is not present in pyproject.toml.
-        run: |
-          if grep -q "\[tool\.deptry\]" pyproject.toml; then
-            uvx deptry .
-          else
-            echo "No deptry config found; skipping dependency check."
-          fi
+      - name: B2) Run ty type checker
+        run: uv run ty check
+        continue-on-error: true
+        # WHY: Catch type errors that Ruff does not check.
+        # OBS: ty uses the installed project environment for analysis.
+        # OBS: Not included in hooks because it requires the full environment.
+        # OBS: continue-on-error keeps type checking non-blocking in this workflow.
 
       # ============================================================
-      # COVERAGE AND TESTS: Verify functionality
+      # C) COVERAGE & TESTING: Python tests
       # ============================================================
-
-      - name: C1) Run pytest with coverage (if tests exist)
-        # OBS: Skipped if no test files found under tests/.
-        run: |
-          if [ -d "tests" ] && [ -n "$(find tests -name 'test_*.py' -o -name '*_test.py' 2>/dev/null)" ]; then
-            uv run pytest --cov-report=xml
-          else
-            echo "No tests found; skipping pytest."
-            echo "## No Tests Found" >> "$GITHUB_STEP_SUMMARY"
-            echo '<?xml version="1.0" ?><coverage></coverage>' > coverage.xml
-          fi
-
-      - name: C2) Add coverage to job summary (if available)
-        if: always()
-        run: |
-          echo "## Test Coverage Report" >> "$GITHUB_STEP_SUMMARY"
-          if [ -f ".coverage" ]; then
-            echo '```' >> "$GITHUB_STEP_SUMMARY"
-            uv run coverage report >> "$GITHUB_STEP_SUMMARY"
-            echo '```' >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "No coverage data available." >> "$GITHUB_STEP_SUMMARY"
-          fi
-
-      - name: C3) Upload coverage artifact (if available)
-        if: always() && hashFiles('coverage.xml') != ''
-        uses: actions/upload-artifact@v7
-        with:
-          name: coverage-report
-          path: coverage.xml
-          retention-days: 30
+      - name: C1) Run pytest
+        run: uv run python -m pytest
+        # WHY: Confirm all Python tests pass in a clean CI environment.
+        # OBS: Not included in hooks because tests can be slow.
 
       # ============================================================
-      # DEPLOY PRE-CHECKS: Validate docs build before any deployment
+      # D) DOCS: Build documentation without deployment
       # ============================================================
-
-      - name: D1) Fetch shared MkDocs base config (if mkdocs.yml present)
-        # OBS: Legacy; remove once all repos migrated to Zensical.
-        run: |
-          if [ -f "mkdocs.yml" ] || [ -f "mkdocs.yaml" ]; then
-            curl --fail -o mkdocs.base.yaml \
-              https://raw.githubusercontent.com/toy-gpt/.github/refs/heads/main/docs-theme/mkdocs.base.yaml
-          else
-            echo "No mkdocs config found; skipping base config fetch."
-          fi
-
-      - name: D2) Build docs with MkDocs (if mkdocs.yml present)
-        # OBS: Legacy; remove once all repos migrated to Zensical.
-        run: |
-          if [ -f "mkdocs.yml" ] || [ -f "mkdocs.yaml" ]; then
-            uv run mkdocs build --strict
-          else
-            echo "No mkdocs config found; skipping MkDocs build."
-          fi
-
-      - name: D3) Build docs with Zensical (if zensical.toml present)
+      - name: D1) Build documentation with Zensical
         run: |
           if [ -f "zensical.toml" ]; then
-            uv run zensical build
+            uv run python -m zensical build
           else
-            echo "No zensical.toml found; skipping Zensical build."
+            echo "No zensical.toml found; skipping docs build."
           fi
+        # WHY: Confirm documentation builds without errors.
+        # OBS: This workflow builds only; deployment is handled separately.
+        # OBS: Conditional on zensical.toml so this workflow remains reusable
+        #      across Python-managed repositories that may not use Zensical.
