@@ -135,7 +135,7 @@ Select a corpus (the text the model is trained on):
 ### Training Repositories: Model-Corpus Matrix
 
 | Repository                                                                                      | Model      | Corpus                                                                                                                                                     | Context |
-| ----------------------------------------------------------------------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | --- |
+| ----------------------------------------------------------------------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
 | [train-100-unigram](https://github.com/toy-gpt/train-100-unigram)                               | Unigram    | [000 cat_dog](https://raw.githubusercontent.com/toy-gpt/train-100-unigram/refs/heads/main/corpus/000_cat_dog.txt) (**neutral**)                            | 0       |
 | [train-200-bigram](https://github.com/toy-gpt/train-200-bigram)                                 | Bigram     | [000 cat_dog](https://raw.githubusercontent.com/toy-gpt/train-200-bigram/refs/heads/main/corpus/000_cat_dog.txt) (**neutral**)                             | 1       |
 | [train-300-context-2](https://github.com/toy-gpt/train-300-context-2)                           | Context-2  | [000 cat_dog](https://raw.githubusercontent.com/toy-gpt/train-300-context-2/refs/heads/main/corpus/000_cat_dog.txt) (**neutral**)                          | 2       |
@@ -150,7 +150,7 @@ Select a corpus (the text the model is trained on):
 | [train-302-context-2-repo-tour](https://github.com/toy-gpt/train-302-context-2-repo-tour)       | Context-2  | [020 repo_tour](https://raw.githubusercontent.com/toy-gpt/train-302-context-2-repo-tour/refs/heads/main/corpus/020_repo_tour.txt) (**domain**)             | 2       |
 | [train-500-embeddings](https://github.com/toy-gpt/train-500-embeddings)                         | Embeddings | [030 analytics](https://raw.githubusercontent.com/toy-gpt/train-500-embeddings/refs/heads/main/corpus/030_analytics.txt) (**domain**)                      | 2       |
 | [train-600-attention](https://github.com/toy-gpt/train-600-attention)                           | Attention  | [030 analytics](https://raw.githubusercontent.com/toy-gpt/train-600-attention/refs/heads/main/corpus/030_analytics.txt) (**domain**) ℹ️                    | 2       |
-| [train-600-attention-3](https://github.com/toy-gpt/train-600-attention-3)                       | Attention  | [030 analytics](https://raw.githubusercontent.com/toy-gpt/train-600-attention-3/refs/heads/main/corpus/030_analytics.txt) (**domain**) ℹ️                  | 3       | --> |
+| [train-600-attention-3](https://github.com/toy-gpt/train-600-attention-3)                       | Attention  | [030 analytics](https://raw.githubusercontent.com/toy-gpt/train-600-attention-3/refs/heads/main/corpus/030_analytics.txt) (**domain**) ℹ️                  | 3       |
 
 - ⚠️ Too large to commit (428 MB of mostly zeros).
 - ℹ️ Attention requires a larger corpus to produce meaningful position weighting.
